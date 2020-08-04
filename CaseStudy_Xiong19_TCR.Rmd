@@ -1,13 +1,18 @@
 ---
-title: ProjecTILs case study of T cells infiltrating MC38 colon adenocarcinoma (Xiong et al 2019)
+title: ProjecTILs case study, MC38 TILs
 author: "M. Andreatta <massimo.andreatta at unil.ch> and S. Carmona <santiago.carmona at unil.ch>"
 knit: (function(input_file, encoding) {
   out_dir <- 'docs';
   rmarkdown::render(input_file,
  encoding=encoding,
  output_file=file.path(dirname(input_file), out_dir, 'index.html'))})
-#output: html_notebook
+output: html_notebook
 ---
+
+
+
+In this ProjecTILs case study, we combined [Seurat](https://satijalab.org/seurat/), [ProjecTILs](https://github.com/carmonalab/ProjecTILs) and [scRepertoire](https://github.com/ncborcherding/scRepertoire) into an integral scRNA-seq analysis workflow to interpret the transcriptional and clonal structure of tumor-infiltrating T cells in MC38 colon adenocarcinoma (data from [Xiong et al 2019](https://doi.org/10.1158/2326-6066.CIR-18-0750))
+
 
 ### Environment
 Check & load R packages
@@ -26,12 +31,9 @@ library(scRepertoire)
 
 
 ### scRNA-seq data preparation
-
-In this ProjecTILs case study we will study the transcriptional and clonal structure of T cells infiltrating murine MC38 colon adenocarcinoma (data from Xiong et al 2019 10.1158/2326-6066.CIR-18-0750)
-
 Download scRNA-seq data from Array Express (https://www.ebi.ac.uk/arrayexpress/experiments/E-MTAB-7919/)
 After download and unpacking (you will need curl and unzip), you should get three files: matrix.mtx, genes.tsv and barcodes.tsv
-```{r}
+```{r, results=F}
 files <- c("E-MTAB-7919.processed.1.zip","E-MTAB-7919.processed.2.zip","E-MTAB-7919.processed.3.zip")
 matrix_dir <- "./input/Xiong_TIL/matrix"
 system(sprintf("mkdir -p %s", matrix_dir))
@@ -201,6 +203,8 @@ plot(g)
 We can observe a pattern: clones tend to span **Tex** and **Tpex** states. 
 
 Indeed, _Tcf7+_ precursor exhausted **Tpex** give rise to more terminally exhausted **Tex** effector cells
+
+## scRepertoire 
 
 **scRepertoire**'s clonal overlap (Morisita similarity index) confirms this pattern:
 ```{r}
