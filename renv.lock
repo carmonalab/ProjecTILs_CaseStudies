@@ -140,16 +140,6 @@
       "Repository": "CRAN",
       "Hash": "08588806cba69f04797dab50627428ed"
     },
-    "ProjecTILs": {
-      "Package": "ProjecTILs",
-      "Version": "0.4.0",
-      "Source": "Git",
-      "RemoteType": "git2r",
-      "RemoteUrl": "https://gitlab.unil.ch/carmona/ProjecTILs.git",
-      "RemoteRef": "v0.4",
-      "RemoteSha": "6e10e0ac1c75270f12b9a53305db2aeed9441bf5",
-      "Hash": "8254b7047e2ed7a5862bc9e4a05000e2"
-    },
     "R.methodsS3": {
       "Package": "R.methodsS3",
       "Version": "1.8.0",

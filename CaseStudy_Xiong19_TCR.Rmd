@@ -6,31 +6,43 @@ knit: (function(input_file, encoding) {
   rmarkdown::render(input_file,
  encoding=encoding,
  output_file=file.path(dirname(input_file), out_dir, 'index.html'))})
-output: html_notebook
+#output: html_notebook
 ---
 
 
+In this case case study, we will build an integrated scRNA-seq analysis workflow to interpret the **transcriptional** and **clonal structure** of tumor-infiltrating T cells in MC38 colon adenocarcinoma (data from [Xiong et al 2019](https://doi.org/10.1158/2326-6066.CIR-18-0750)).
 
-In this ProjecTILs case study, we combined [Seurat](https://satijalab.org/seurat/), [ProjecTILs](https://github.com/carmonalab/ProjecTILs) and [scRepertoire](https://github.com/ncborcherding/scRepertoire) into an integral scRNA-seq analysis workflow to interpret the transcriptional and clonal structure of tumor-infiltrating T cells in MC38 colon adenocarcinoma (data from [Xiong et al 2019](https://doi.org/10.1158/2326-6066.CIR-18-0750))
+The main R packages and methods employed in this workflow are:
 
+* [Seurat](https://satijalab.org/seurat/) - for storing, processing and visualizing scRNA-seq data
+* [ProjecTILs](https://github.com/carmonalab/ProjecTILs) - for the projection of scRNA-seq data into a reference TIL atlas
+* [scRepertoire](https://github.com/ncborcherding/scRepertoire) - for the analysis of TCR-seq data
+
+Note that `scRepertoire` requires R version 4.0 or higher - you will need to have R v.4 installed to run this case study.
 
 ### Environment
 Check & load R packages
 ```{r, message=F, warning=F, results=F}
-source("check.dependencies.R")
+Sys.setenv(R_REMOTES_NO_ERRORS_FROM_WARNINGS="true")
 
-#remotes::install_git("https://gitlab.unil.ch/carmona/ProjecTILs.git", branch = "v0.4")
-#remotes::install_github("ncborcherding/scRepertoire")
+if (!requireNamespace("renv")) 
+  install.packages("renv")
+library(renv)
+renv::restore()
 
+#Load development version of ProjecTILs (compatible with R v.4)
+remotes::install_git("https://gitlab.unil.ch/carmona/ProjecTILs.git", ref = "v0.4")
+
+library(scRepertoire)
 library(ProjecTILs)
 library(gridExtra)
 library(ggplot2)
 library(plotly)
-library(scRepertoire)
 ```
 
 
 ### scRNA-seq data preparation
+
 Download scRNA-seq data from Array Express (https://www.ebi.ac.uk/arrayexpress/experiments/E-MTAB-7919/)
 After download and unpacking (you will need curl and unzip), you should get three files: matrix.mtx, genes.tsv and barcodes.tsv
 ```{r, results=F}
@@ -75,7 +87,7 @@ system(sprintf("unzip -o %s/data.zip -d %s", tcr_dir, tcr_dir))
 ```
 
 
-Mouse 1 to 4 (sample ID 4 to 7) correspond to TCRseq libraries 35 to 38
+Mouse 1 to 4 (sample ID 4 to 7) correspond to TCR-seq libraries 35 to 38
 ```{r}
 libIDtoSampleID_VDJ <- 4:7
 names(libIDtoSampleID_VDJ) <- 35:38
@@ -97,55 +109,66 @@ for (i in 1:length(libIDtoSampleID_VDJ)){
 
 Combine alpha and beta chains, and load data into Seurat object
 ```{r}
-#This configuration will remove cells with multiple a-b combinations
+#Using parameters removeNA=T and removeMulti=T will remove cells with multiple a-b combinations
 combined <- combineTCR(vdj.list, samples=libIDtoSampleID_VDJ, ID=names(libIDtoSampleID_VDJ), cells = "T-AB", removeNA = T, removeMulti = T)
 
 for (i in seq_along(combined)) {
     combined[[i]] <- stripBarcode(combined[[i]], column = 1, connector = "_", num_connects = 3)
 }
-
-head(combined[[1]])
-
-#The function 'combineExpression' scRepertoire allows incorporating clonotype information to a Seurat object, and creates the categorical variable 'cloneTypes' discretizing frequencies of the clonotypes
-querydata <- combineExpression(combined, querydata, cloneCall="gene", groupBy = "none")
-
 ```
 
+See the structure of the TCRdata, after a-b chain pairing
+```{r}
+head(combined[[1]])
+```
+
+The function 'combineExpression' of scRepertoire allows incorporating clonotype information to a Seurat object, and creates the categorical variable 'cloneTypes' discretizing frequencies of the clonotypes
+```{r}
+querydata <- combineExpression(combined, querydata, cloneCall="gene", groupBy = "none")
+```
+
+We have now paired expression and TCR data for the query samples, and loaded them into a unified Seurat object. We can proceed to project the data onto the reference atlas.
 
 ### ProjecTILs
-Project query data (with clonotype information stored as meta.data) onto the TIL reference atlas
+Project query data (with clonotype information stored as metadata) onto the TIL reference atlas
 
 ```{r}
 ref <- load.reference.map()
 query.projected <- make.projection(querydata, ref=ref)
 ```
 
-Visualization of projected data
+Visualization of projected data. T cells are projected mostly in the Treg, CD8 Terminal exhausted (CD8_Tex) and Precursor exhausted (CD8_Tpex) areas, with some clusters in the T-helper (Th1) and CD8 Effector memory areas, and to a lesser extent in Naive-like and CD8 Early-Activated areas.
 ```{r}
 plot.projection(ref)
 plot.projection(ref, query.projected)
 ```
-T cells were projected mostly in the Treg, CD8 Terminal exhausted (CD8_Tex) and Precursor exhausted (CD8_Tpex) areas, with some clusters in the T-helper (Th1) and CD8 Effector memory areas, and to a lesser extent in Naive-like and CD8 Early Activated areas.
 
+Visualize the projections per sample. 
+```{r fig.width=8, fig.height=5}
+plots <- list()
 
+sample_names <- unique(query.projected$SampleLabel)
+for (sample_i in seq_along(sample_names)) {
+  sample <- sample_names[sample_i]
+  plots[[sample_i]] <- plot.projection(ref, query.projected[,query.projected$SampleLabel==sample]) + ggtitle(sample)
+}
 
-TODO: Here plot per animal
-
-
+grid.arrange(grobs=plots, ncol=2)
+```
 
 
 Classify projected T cells into cell subtypes/states
-```{r}
+```{r warning=F}
 query.projected <- cellstate.predict(ref=ref, query=query.projected)
-table(query.projected$functional.cluster) #here is where the cell state assignment is stored
-
-plot.statepred.composition(ref, query.projected, metric = "Percent")
-
+table(query.projected$functional.cluster) #Cell state assignment is stored in the 'functional.cluster' metadata field
 ```
-Quantitative cell states assignment based on nearest-neighbor classification, confirms the visual inspection.
 
-We can check the gene expression profile of the cells assign to each state:
+Look at distribution of T cells in terms of cell states.
+```{r}
+plot.statepred.composition(ref, query.projected, metric = "Percent")
+```
 
+We can check the gene expression profile of the cells assigned to each state:
 ```{r, fig.width=5}
 plot.states.radar(ref=ref,query.projected,min.cells = 30)
 ```
@@ -153,10 +176,10 @@ For example, cells projected into **Tex** and **Tpex** region express _Tox_ and 
 
 Now, let's see where the expanded clones are located within the map:
 ```{r}
-query.projected$cloneType <- factor(query.projected$cloneType, 
-                levels = c("Hyperexpanded (100 < X <= 500)", "Large (20 < X <= 100)", 
-                            "Medium (5 < X <= 20)", "Small (1 < X <= 5)", "Single (0 < X <= 1)", NA))
+levs <- c("Hyperexpanded (100 < X <= 500)", "Large (20 < X <= 100)", "Medium (5 < X <= 20)", "Small (1 < X <= 5)", "Single (0 < X <= 1)", NA)
 palette<- colorRampPalette(c("#FF4B20", "#FFB433", "#C6FDEC", "#7AC5FF", "#0348A6"))
+
+query.projected$cloneType <- factor(query.projected$cloneType, levels = levs)
 DimPlot(query.projected, group.by = "cloneType") + scale_color_manual(values = c(palette(5)), na.value="grey")
 ```
 Larger (most highly expanded) clones are concentrated in the Tex/Tpex area.
@@ -173,10 +196,10 @@ meta <- melt(table(query.projected@meta.data[!is.na(query.projected@meta.data$Fr
 ggplot(data=meta, aes(x=functional.cluster, y=value, fill=cloneType)) +
   geom_bar(stat="identity") +  theme(axis.text.x=element_text(angle=90, hjust=1, vjust=0.5)) + scale_fill_manual(values = c(palette(5)), na.value="grey")
 ```
-This confirms the intial guess that **Tex** and **Tpex** have the largest clonal expansion
+This confirms the intial observation that **Tex** and **Tpex** have the largest clonal expansion
 
 
-We can highlight specific clones on the map:
+We can highlight specific clones on the reference atlas:
 ```{r fig.width=12, fig.height=12}
 clone_call = "CTaa"   #select column/variable to use as clonotypes ID, in this case CTaa, the paired TCR CDR3 aminoacid sequences
 cutoff <- 20 #Min cells for clonotype
@@ -195,28 +218,20 @@ for (i in 1:length(bigClonotypes)) {
     ggtitle(sprintf("%s - size %i", ctype, clonotypeSizes[ctype]))
 }
 
-g.cols <- 4
-g <- do.call("arrangeGrob", c(plots, ncol=g.cols))
-plot(g)
-
+grid.arrange(grobs=plots, ncols=4)
 ```
-We can observe a pattern: clones tend to span **Tex** and **Tpex** states. 
+The majority of clones tend to span **Tex** and **Tpex** states. 
+Indeed, _Tcf7+_ precursor exhausted **Tpex** give rise to more terminally exhausted **Tex** effector cells.
 
-Indeed, _Tcf7+_ precursor exhausted **Tpex** give rise to more terminally exhausted **Tex** effector cells
 
-## scRepertoire 
-
-**scRepertoire**'s clonal overlap (Morisita similarity index) confirms this pattern:
-```{r}
-clonalOverlap(meta.list, cloneCall = "gene", method = "morisita") + theme(axis.text.x=element_text(angle=90, hjust=1, vjust=0.5)) 
-```
-We can also visualize overlap of the top CD8 clones with **scRepertoire**'s alluvial plot
+The clonal overlap (Morisita similarity index) implemented in **scRepertoire** confirms this pattern:
 ```{r}
 meta.list <- expression2List(query.projected, group = "functional.cluster")
-
+clonalOverlap(meta.list, cloneCall = "gene", method = "morisita") + theme(axis.text.x=element_text(angle=90, hjust=1, vjust=0.5)) 
+```
+We can also visualize overlap of the top CD8 clones, and their overlap across functional clusters, using **scRepertoire**'s alluvial plot
+```{r}
 compareClonotypes(meta.list, numbers = 6, samples = c("CD8_EffectorMemory", "CD8_Tpex", "CD8_Tex", "CD8_NaiveLike", "CD8_EarlyActiv"), cloneCall="aa", graph = "alluvial") +  theme(axis.text.x=element_text(angle=90, hjust=1, vjust=0.5)) 
-
-
 ```
 
 
