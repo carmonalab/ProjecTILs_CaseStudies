@@ -1,0 +1,12 @@
+body{ /* Normal  */
+      font-size: 12px;
+  }
+td {  /* Table  */
+  font-size: 8px;
+}
+code.r{ /* Code block */
+    font-size: 6px;
+}
+pre { /* Code block - determines code spacing between lines */
+    font-size: 12px;
+}
