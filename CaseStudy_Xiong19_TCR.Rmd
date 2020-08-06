@@ -149,15 +149,21 @@ querydata <- combineExpression(combined, querydata, cloneCall="gene", groupBy = 
 We have now paired expression and TCR data for the query samples, and loaded them into a unified Seurat object. We can proceed to project the data onto the reference atlas.
 
 # ProjecTILs
-Project query data (with clonotype information stored as metadata) onto the TIL reference atlas
 
+Load the reference atlas
 ```{r}
 ref <- load.reference.map()
+```
+
+Project query data (with clonotype information stored as metadata) onto the TIL reference atlas
+```{r}
 query.projected <- make.projection(querydata, ref=ref)
 ```
 
-Visualization of projected data. T cells are projected mostly in the Treg, CD8 Terminal exhausted (CD8_Tex) and Precursor exhausted (CD8_Tpex) areas, with some clusters in the T-helper (Th1) and CD8 Effector memory areas, and to a lesser extent in Naive-like and CD8 Early-Activated areas.
-```{r fig1, fig.width=10, fig.height=5}
+Visualization of projected data.
+
+T cells are projected mostly in the Treg, CD8 Terminal exhausted (CD8_Tex) and Precursor exhausted (CD8_Tpex) areas, with some clusters in the T-helper (Th1) and CD8 Effector memory areas, and to a lesser extent in Naive-like and CD8 Early-Activated areas.
+```{r fig1, fig.width=12, fig.height=5}
 p1 <- plot.projection(ref)
 p2 <- plot.projection(ref, query.projected)
 grid.arrange(p1,p2,ncol=2)
@@ -223,7 +229,7 @@ ggplot(data=meta, aes(x=functional.cluster, y=value, fill=cloneType)) +
 
 This confirms the intial observation that **Tex** and **Tpex** present the largest clonal expansion
 
-We can highlight specific clonotypes on the reference atlas (here those with at least 40 clones):
+We can highlight specific clonotypes on the reference atlas (here those with at least 40 cells):
 ```{r fig.width=15, fig.height=20}
 clone_call = "CTaa"   #select column/variable to use as clonotypes ID, in this case CTaa, the paired TCR CDR3 aminoacid sequences
 cutoff <- 40 #Min cells for clonotype
@@ -253,6 +259,7 @@ The clonal overlap (Morisita similarity index) implemented in **scRepertoire** c
 meta.list <- expression2List(query.projected, group = "functional.cluster")
 clonalOverlap(meta.list, cloneCall = "gene", method = "morisita") + theme(axis.text.x=element_text(angle=90, hjust=1, vjust=0.5)) 
 ```
+
 We can also visualize overlap of the top CD8 clones, and their overlap across functional clusters, using **scRepertoire**'s alluvial plot
 ```{r}
 compareClonotypes(meta.list, numbers = 6, samples = c("CD8_EffectorMemory", "CD8_Tpex", "CD8_Tex", "CD8_NaiveLike", "CD8_EarlyActiv"), cloneCall="aa", graph = "alluvial") +  theme(axis.text.x=element_text(angle=90, hjust=1, vjust=0.5)) 
@@ -263,8 +270,6 @@ compareClonotypes(meta.list, numbers = 6, samples = c("CD8_EffectorMemory", "CD8
 **Projection of the MC38 TILs onto the reference atlas** showed that these T cell samples mostly consist of exhausted (CD8_Tex), precursor-exhausted CD8 T cells (CD8_Tpex), and Tregs, typical of highly immunogenic, "hot" tumors. Also, the majority of **expanded clones** were found spanning the CD8_Tex and CD8_Tpex states. This is expected as sustained antigen stimulation in the tumor drives immuno-dominant tumor-reactive clones towards the exhaustion differentiation path.
 <br>
 The combination of `ProjecTILs` and `scRepertoire` simplifies the joint analysis of single-cell expression data and clonotype analysis, in the context of an annotated reference atlas of TIL states.
-
-
 
 
 
