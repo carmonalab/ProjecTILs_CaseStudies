@@ -157,12 +157,13 @@ query.projected <- make.projection(querydata, ref=ref)
 ```
 
 Visualization of projected data. T cells are projected mostly in the Treg, CD8 Terminal exhausted (CD8_Tex) and Precursor exhausted (CD8_Tpex) areas, with some clusters in the T-helper (Th1) and CD8 Effector memory areas, and to a lesser extent in Naive-like and CD8 Early-Activated areas.
-```{r fig1}
-plot.projection(ref)
-plot.projection(ref, query.projected)
+```{r fig1, fig.width=10, fig.height=5}
+p1 <- plot.projection(ref)
+p2 <- plot.projection(ref, query.projected)
+grid.arrange(p1,p2,ncol=2)
 ```
 
-Visualize the projections per sample. Broadly, the distribution across the atlas is similar for the four mice.
+Visualize the projections per sample. Broadly, the distribution across the atlas is similar for the four mice, with some variation in the frequency of Effector Memory T cells. 
 ```{r fig2, fig.width=16, fig.height=10}
 plots <- list()
 
@@ -187,7 +188,7 @@ Look at distribution of T cells in terms of cell states.
 plot.statepred.composition(ref, query.projected, metric = "Percent")
 ```
 
-We can check the gene expression profile of the cells assigned to each state:
+We can check the gene expression profile of the cells assigned to each state (yellow), and compare them to those of the reference states (black).
 ```{r, fig.width=16, fig.height=10}
 plot.states.radar(ref=ref,query.projected,min.cells = 30)
 ```
@@ -213,16 +214,16 @@ Let's check the raw numbers
 table(query.projected@meta.data$cloneType,query.projected@meta.data$functional.cluster)
 ```
 
-And plot this information
+This information in a plot:
 ```{r}
 meta <- melt(table(query.projected@meta.data[!is.na(query.projected@meta.data$Frequency),c("functional.cluster","cloneType")]),varnames = c("functional.cluster","cloneType"))
 ggplot(data=meta, aes(x=functional.cluster, y=value, fill=cloneType)) +
   geom_bar(stat="identity") +  theme(axis.text.x=element_text(angle=90, hjust=1, vjust=0.5)) + scale_fill_manual(values = c(palette(5)), na.value="grey")
 ```
 
-This confirms the intial observation that **Tex** and **Tpex** have the largest clonal expansion
+This confirms the intial observation that **Tex** and **Tpex** present the largest clonal expansion
 
-We can highlight specific clones on the reference atlas:
+We can highlight specific clonotypes on the reference atlas (here those with at least 40 clones):
 ```{r fig.width=15, fig.height=20}
 clone_call = "CTaa"   #select column/variable to use as clonotypes ID, in this case CTaa, the paired TCR CDR3 aminoacid sequences
 cutoff <- 40 #Min cells for clonotype
@@ -240,10 +241,11 @@ for (i in 1:length(bigClonotypes)) {
     ggtitle(sprintf("%s - size %i", ctype, clonotypeSizes[ctype]))
 }
 
-grid.arrange(grobs=plots, ncols=2)
+grid.arrange(grobs=plots, ncol=2)
 ```
+
 The majority of clones tend to span **Tex** and **Tpex** states. 
-Indeed, _Tcf7+_ precursor exhausted **Tpex** give rise to more terminally exhausted **Tex** effector cells.
+Indeed, _Tcf7+_ precursor exhausted **Tpex** cells self-renew and give rise to more differentiated **Tex** effector cells.
 
 
 The clonal overlap (Morisita similarity index) implemented in **scRepertoire** confirms this pattern:
@@ -258,7 +260,9 @@ compareClonotypes(meta.list, numbers = 6, samples = c("CD8_EffectorMemory", "CD8
 
 # Conclusions
 
-**Projection of the MC38 TILs onto the reference atlas** showed that these T cell samples mostly consist of CD8 exhausted (CD8_Tex), CD8 precursor-exhuasted (CD_Tpex), and Tregs. Importantly, the majority of **expanded clones** are found in the Tex and Tpex regions of the atlas, indicating that sustained antigen stimulation drives tumor-recognizing cells towards exhaustion. The combination of `ProjecTILs` and `scRepertoire` simplifies the joint analysis of single-cell expression data and clonotype analysis, in the context of an annotated reference atlas of TIL states.
+**Projection of the MC38 TILs onto the reference atlas** showed that these T cell samples mostly consist of exhausted (CD8_Tex), precursor-exhausted CD8 T cells (CD8_Tpex), and Tregs, typical of highly immunogenic, "hot" tumors. Also, the majority of **expanded clones** were found spanning the CD8_Tex and CD8_Tpex states. This is expected as sustained antigen stimulation in the tumor drives immuno-dominant tumor-reactive clones towards the exhaustion differentiation path.
+<br>
+The combination of `ProjecTILs` and `scRepertoire` simplifies the joint analysis of single-cell expression data and clonotype analysis, in the context of an annotated reference atlas of TIL states.
 
 
 
