@@ -4,28 +4,15 @@ date: "`r Sys.Date()`"
 author: "M. Andreatta and S. Carmona"
 output:
   rmdformats::readthedown:
-    highlight: kate
+    self-contained: true
+    highlight: haddock
     thumbnails: false
-  html_document:
     css: styles.css
 knit: (function(input_file, encoding) {
   out_dir <- 'docs';
   rmarkdown::render(input_file, encoding=encoding,
   output_file=file.path(dirname(input_file), out_dir, 'Xiong19_TCR.html'))})
 ---
-
-<style type="text/css">
-
-body, td {
-   font-size: 14px;
-}
-code.r{
-  font-size: 8px;
-}
-pre {
-  font-size: 12px
-}
-</style>
 
 ```{r setup, echo=FALSE, cache=FALSE}
 #install.packages("rmdformats")
@@ -47,7 +34,6 @@ opts_knit$set(width=75)
 
 ```
 
-
 In this case study, we will build an integrated scRNA-seq analysis workflow to interpret the **transcriptional** and **clonal structure** of tumor-infiltrating T cells in MC38 colon adenocarcinoma (data from [Xiong et al 2019](https://doi.org/10.1158/2326-6066.CIR-18-0750)).
 
 The main R packages and methods employed in this workflow are:
@@ -58,7 +44,7 @@ The main R packages and methods employed in this workflow are:
 
 Note that `scRepertoire` requires R version 4.0 or higher - you will need to have R v.4 installed to run this case study.
 
-# Environment
+# R Environment
 Check & load R packages
 ```{r message=F, warning=F, results=F}
 Sys.setenv(R_REMOTES_NO_ERRORS_FROM_WARNINGS="true")
@@ -145,7 +131,7 @@ for (i in 1:length(libIDtoSampleID_VDJ)){
 ```
 
 
-Combine alpha and beta chains, and load data into Seurat object
+Combine alpha and beta chains using the **combineTCR** function from `scRepertoire`
 ```{r}
 #Using parameters removeNA=T and removeMulti=T will remove cells with multiple a-b combinations
 combined <- combineTCR(vdj.list, samples=libIDtoSampleID_VDJ, ID=names(libIDtoSampleID_VDJ), cells = "T-AB", removeNA = T, removeMulti = T)
@@ -153,11 +139,6 @@ combined <- combineTCR(vdj.list, samples=libIDtoSampleID_VDJ, ID=names(libIDtoSa
 for (i in seq_along(combined)) {
     combined[[i]] <- stripBarcode(combined[[i]], column = 1, connector = "_", num_connects = 3)
 }
-```
-
-See the structure of the TCRdata, after a-b chain pairing
-```{r}
-head(combined[[1]])
 ```
 
 The function 'combineExpression' of scRepertoire allows incorporating clonotype information to a Seurat object, and creates the categorical variable 'cloneTypes' discretizing frequencies of the clonotypes
@@ -181,7 +162,7 @@ plot.projection(ref)
 plot.projection(ref, query.projected)
 ```
 
-Visualize the projections per sample. 
+Visualize the projections per sample. Broadly, the distribution across the atlas is similar for the four mice.
 ```{r fig2, fig.width=16, fig.height=10}
 plots <- list()
 
@@ -242,9 +223,9 @@ ggplot(data=meta, aes(x=functional.cluster, y=value, fill=cloneType)) +
 This confirms the intial observation that **Tex** and **Tpex** have the largest clonal expansion
 
 We can highlight specific clones on the reference atlas:
-```{r fig.width=10, fig.height=15}
+```{r fig.width=15, fig.height=20}
 clone_call = "CTaa"   #select column/variable to use as clonotypes ID, in this case CTaa, the paired TCR CDR3 aminoacid sequences
-cutoff <- 20 #Min cells for clonotype
+cutoff <- 40 #Min cells for clonotype
 
 clonotypeSizes <- sort(table(query.projected[[clone_call]])[table(query.projected[[clone_call]])>cutoff],decreasing = T)
 
@@ -253,14 +234,13 @@ bigClonotypes <- names(clonotypeSizes)
 plots <- list()
 
 for (i in 1:length(bigClonotypes)) {
-  
   ctype <- bigClonotypes[i]
 
   plots[[i]] <- plot.projection(ref, query.projected[,which(query.projected[[clone_call]]==ctype)]) + 
     ggtitle(sprintf("%s - size %i", ctype, clonotypeSizes[ctype]))
 }
 
-grid.arrange(grobs=plots, ncols=3)
+grid.arrange(grobs=plots, ncols=2)
 ```
 The majority of clones tend to span **Tex** and **Tpex** states. 
 Indeed, _Tcf7+_ precursor exhausted **Tpex** give rise to more terminally exhausted **Tex** effector cells.
@@ -275,5 +255,13 @@ We can also visualize overlap of the top CD8 clones, and their overlap across fu
 ```{r}
 compareClonotypes(meta.list, numbers = 6, samples = c("CD8_EffectorMemory", "CD8_Tpex", "CD8_Tex", "CD8_NaiveLike", "CD8_EarlyActiv"), cloneCall="aa", graph = "alluvial") +  theme(axis.text.x=element_text(angle=90, hjust=1, vjust=0.5)) 
 ```
+
+# Conclusions
+
+**Projection of the MC38 TILs onto the reference atlas** showed that these T cell samples mostly consist of CD8 exhausted (CD8_Tex), CD8 precursor-exhuasted (CD_Tpex), and Tregs. Importantly, the majority of **expanded clones** are found in the Tex and Tpex regions of the atlas, indicating that sustained antigen stimulation drives tumor-recognizing cells towards exhaustion. The combination of `ProjecTILs` and `scRepertoire` simplifies the joint analysis of single-cell expression data and clonotype analysis, in the context of an annotated reference atlas of TIL states.
+
+
+
+
 
 

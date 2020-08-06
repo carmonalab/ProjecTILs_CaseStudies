@@ -1,0 +1,42 @@
+---
+title: ProjecTILs case studies
+date: "`r Sys.Date()`"
+author: "M. Andreatta and S. Carmona"
+output:
+  rmdformats::readthedown:
+    self-contained: true
+    highlight: haddock
+    thumbnails: false
+    css: styles.css
+knit: (function(input_file, encoding) {
+  out_dir <- 'docs';
+  rmarkdown::render(input_file, encoding=encoding, output_file=file.path(dirname(input_file), out_dir, 'index.html'))})
+---
+
+```{r setup, echo=FALSE, cache=FALSE}
+#install.packages("rmdformats")
+#Template markdown setup
+library(knitr)
+library(rmdformats)
+
+## Global options
+options(max.print="75")
+opts_chunk$set(echo=TRUE,
+	             cache=TRUE,
+               prompt=FALSE,
+               tidy=FALSE,
+               comment=NA,
+               message=FALSE,
+               warning=FALSE,
+               dev = 'png')
+opts_knit$set(width=75)
+
+```
+
+We will be posting here interesting/instructive case studies of single-cell data analysis using [ProjecTILs](https://www.biorxiv.org/content/10.1101/2020.06.23.166546v1). Read the notebooks linked below, or get the source code to run it on your machine from the [GitHub repository](https://github.com/carmonalab/ProjecTILs_CaseStudies)
+
+# 1. [MC38 TILs with clonotype analysis](Xiong19_TCR.html)
+
+In [this case study](Xiong19_TCR.html), we build an integrated scRNA-seq analysis workflow to interpret the **transcriptional** (scRNA-seq) and **clonal structure** (scTCR-seq) of tumor-infiltrating T cells in MC38 colon adenocarcinoma.
+
+

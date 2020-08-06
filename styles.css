@@ -1,12 +1,38 @@
-body{ /* Normal  */
-      font-size: 12px;
-  }
-td {  /* Table  */
-  font-size: 8px;
+#content pre code {  /* Properties for code blocks  */
+    font-family:Monaco,Consolas,"Andale Mono WT","Andale Mono","Lucida Console","Lucida Sans Typewriter","DejaVu Sans Mono","Bitstream Vera Sans Mono","Liberation Mono","Nimbus Mono L","Courier New",Courier,monospace;
+    border: none;
+    background: none;
+    font-size: 80%;
+    white-space: pre;
 }
-code.r{ /* Code block */
-    font-size: 6px;
+#nav-top span.glyphicon {
+  color: #0bb04d;
+  font-size: 28px;
 }
-pre { /* Code block - determines code spacing between lines */
-    font-size: 12px;
+#sidebar header{ /*Background colors*/
+    height:32px;
+    display:inline-block;
+    line-height:32px;
+    padding:0 1.618em;
+    display:block;
+    font-weight:bold;
+    text-transform:uppercase;
+    font-size:80%;
+    color:#0bb04d;
+    white-space:nowrap}
+#sidebar h2{
+    z-index:200;
+    background-color:#0bb04d;
+    text-align:center;
+    padding:0.809em;
+    display:block;
+    color:#fcfcfc;
+    font-size: 100%;
+    margin-top: 0px;
+    margin-bottom:0.809em;
+}
+h1,h2,h3,h4,h5,h6,legend{
+    font-family:"Roboto Slab","ff-tisa-web-pro","Georgia",Arial,sans-serif;
+    font-weight:700;
+    color: #0bb04d;
 }
