@@ -42,7 +42,7 @@ In this case study, we will use ProjecTILs to interpret **human** scRNA-seq T ce
 
 In the study by [Sade-Feldman et al. (2018) Cell](https://pubmed.ncbi.nlm.nih.gov/30388456/), the authours characterize the transcriptomics profile of immune cells from melanoma patients treated with checkpoint inhibitors, with the goal to identify factors that associate with success or failure of immune checkpoint therapy. They find that certain CD8+ T cell states associate with clinical outcome, and in particular that the transcription factor TCF7 is a significant marker for response to anti-PD-1 therapy. This suggests that the state of T cells found within a tumor is critical for induction of effective tumor immunity, highlighting the importance of characterizing (and potentially intervening on) the diversity of tumor-infiltraring T cells. 
 
-The single-cell expression data [GSE120575](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE120575) consists of CD45+ single cells from 48 tumor samples of melanoma patients treated with checkpoint inhibitors, and sequenced by Smart-seq2 technology. Meta-data on response to therapy (Responder vs. Non-responder) is also available on the same GEO identifier.
+The single-cell expression data [(GSE120575)](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE120575) consists of CD45+ single cells from 48 tumor samples of melanoma patients treated with checkpoint inhibitors, and sequenced by Smart-seq2 technology. Meta-data on response to therapy (Responder vs. Non-responder) is also available on the same GEO identifier.
 
 Please use the development version of `ProjecTILs` >0.4.1, which implements ortholog gene conversion between human and mouse.
 
@@ -66,7 +66,7 @@ library(gridExtra)
 # scRNA-seq data preparation
 
 Download the count matrix and metadata from Gene Expression Omnibus (GEO), and store as Seurat object.
-```{r message=F, warning=F, results=F}
+```{r message=F, warning=F, cache=F}
 cached.object <- "SadeFeldman.seurat.rds"
 
 if(!file.exists(cached.object)){
@@ -111,7 +111,7 @@ if(!file.exists(cached.object)){
 }
 ```
 
-Some basic stats
+Some basic statistics - cells per group (Pre vs. Post, Therapy, Responder vs. Non-responder)
 ```{r}
 table(query.object$Time)
 table(query.object$Therapy)
@@ -160,7 +160,7 @@ Hs2Mm.convert.table[Hs2Mm.convert.table$Gene.HS %in% which.genes, ]
 # Response to therapy
 
 Now to the interesting part. Let's visualize the projection and T cell state distribution by response to therapy:
-```{r fig.heigh=8, fig.width=12}
+```{r fig.height=14, fig.width=14, fig.align="center"}
 query.list <- SplitObject(query.projected, split.by = "Response")
 
 pll <- list()
@@ -170,11 +170,13 @@ pll[[2]] <- plot.statepred.composition(ref, query.list[["Responder"]], metric="P
 pll[[3]] <- plot.projection(ref, query.list[["Non-responder"]]) + ggtitle("Non-responder")
 pll[[4]] <- plot.statepred.composition(ref, query.list[["Non-responder"]], metric="Percent") + ggtitle("Non-responder") + ylim(0,35)
 
-grid.arrange(grobs=pll, ncol=2, nrow=2)
+grid.arrange(grobs=pll, ncol=2, nrow=2, widths=c(1.5,1))
 ```
 
+There is a clear shift to more differentiated states (e.g. CD8_Tex and CD8_EM) in non-responders, while responders have a higher fraction of Naive-like states.
+
 To better examine the different in T cell phenotype composition between rsponders and non-responders, we can visualize the fold-change of T cell state frequency between the two groups:
-```{r fig.heigh=8, fig.width=4}
+```{r fig.heigh=8, fig.width=5, fig.align="center"}
 which.types <- table(query.projected$functional.cluster)>100
 
 stateColors_func <- c("#edbe2a","#A58AFF","#53B400","#F8766D","#00B6EB","#d1cfcc","#FF0000","#87f6a5","#e812dd")
@@ -200,7 +202,16 @@ ggplot(tb.m, aes(x=Cell_state, y=Fold_change, fill=Cell_state)) + geom_bar(stat=
 
 ```
 
+CD4 and CD8 Naive-like states are the most enriched in responders compared to non-responders, confirming the observation of the original paper that TCF7+ cells are associated with response to therapy. Additionally, we also observe an increase in CD4+ T follicular helper cells (Tfh), as well as a decrease in effector CD8+ cells. As expected, T regulatory cells (Tregs) are more prevalent in non-responders. Because Tregs are known to inhibit antitumor immunuty, this observation that could also explain the reduced tumor control in non-responding lesions.
+
+# Conclusions
+
+Taking advantage of the ortholog mapping functionality of `ProjecTILs`, we have illustrated how to effortlessy analyze human scRNA-seq data in the context of a reference murine TIL atlas. Gene expression profiles confirm that T cells are accurately projected in major CD4+ and CD8+ categories, as well as in more specific subtypes. Comparing the transcriptomics profile of immune cells from melanoma patients treated with checkpoint inhibitors, and their composition in terms of cell states, confirms the observation of the original study that TCF7 is a marker and potential predictor of immunotherapy response. Additionally, ProjecTILs analysis in the context of a stable atlas gives a more complete picture of the T cell states that are "favorable" to tumor response - e.g. the enrichment of more naive-like states, and reduction of Tregs within the tumor.
 
 
+# Further reading
 
+Original publication - [Sade-Feldman et al. (2018) Cell](https://pubmed.ncbi.nlm.nih.gov/30388456/)
+
+ProjecTILs case studies - [INDEX](https://carmonalab.github.io/ProjecTILs_CaseStudies/) - [Repository](https://github.com/carmonalab/ProjecTILs_CaseStudies)
 
