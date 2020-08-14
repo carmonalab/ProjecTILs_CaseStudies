@@ -24,6 +24,7 @@ library(rmdformats)
 options(max.print="75")
 opts_chunk$set(echo=TRUE,
 	             cache=TRUE,
+               cache.lazy=FALSE,
                prompt=FALSE,
                tidy=TRUE,
                comment=NA,
@@ -55,7 +56,7 @@ if (!requireNamespace("renv"))
 library(renv)
 renv::restore()
 
-#Load development version of ProjecTILs (compatible with R v.4)
+#Load development version of ProjecTILs
 remotes::install_git("https://gitlab.unil.ch/carmona/ProjecTILs.git", ref = "v0.4.1")
 
 library(ProjecTILs)
@@ -79,7 +80,7 @@ getGEOSuppFiles(geo_acc,baseDir=datadir)
 ```
 
 Load expression matrix and metadata
-```{r}
+```{r cache=FALSE}
 exp.mat <- read.delim(sprintf("%s/%s/GSE120575_Sade_Feldman_melanoma_single_cells_TPM_GEO.txt.gz", datadir, geo_acc), header=F, sep="\t")
 genes <- exp.mat[c(-1,-2),1]
 cells <- as.vector(t(exp.mat[1,2:16292]))
@@ -136,6 +137,7 @@ table(query.projected$functional.cluster)
 
 The expression profiles or some key genes correspond fairly well to those of the reference
 ```{r, fig.height=5, fig.width=6}
+query.list <- SplitObject(query.projected, split.by = "Response")
 plot.states.radar(ref, query=query.list,min.cells = 50, 
                   genes4radar = c("Foxp3","Cd4","Cd8a","Tcf7","Ccr7","Gzmb","Pdcd1","Havcr2","Tox","Entpd1","Cxcr5","Ifng"))
 
