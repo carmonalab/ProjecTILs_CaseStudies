@@ -1,5 +1,5 @@
 ---
-title: Changes in TIL contexture in melanoma patients following checkpoint blockade
+title: TIL contexture predicts checkpoint blockade response in melanoma patients
 date: "`r Sys.Date()`"
 author: "M. Andreatta and S. Carmona"
 output:
@@ -15,8 +15,6 @@ knit: (function(input_file, encoding) {
 ---
 
 
-TODO: change patient with sample
- add 41BB and CD28 expression in radar plot
 
 ```{r setup, echo=FALSE, cache=FALSE}
 #install.packages("rmdformats")
@@ -44,7 +42,8 @@ In this case study, we will use ProjecTILs to interpret **human** scRNA-seq T ce
 
 # Background
 
-In the study by [Sade-Feldman et al. (2018) Cell](https://pubmed.ncbi.nlm.nih.gov/30388456/), the authours characterize transcriptional profiles of immune cells from melanoma patients before and after immune checkpoint blockade, with the goal to identify factors that associate with success or failure of checkpoint therapy. They reported that certain CD8+ T cell states associate with clinical outcome, and in particular that the transcription factor TCF7 is a significant marker for response to checkpoint therapy. This suggests that the state of T cells found within a tumor is critical for induction of effective immune tumor rejection, highlighting the importance of characterizing (and potentially intervening on) the diversity of tumor-infiltrating T cells. 
+In the study by [Sade-Feldman et al. (2018) Cell](https://pubmed.ncbi.nlm.nih.gov/30388456/), the authors characterize transcriptional profiles of immune cells from melanoma patients before and after immune checkpoint blockade, with the goal to identify factors that associate with success or failure of checkpoint therapy. They reported that certain CD8+ T cell states associate with clinical outcome, and in particular that the transcription factor TCF7 is a significant marker for response to checkpoint therapy. This suggests that the state of T cells found within a tumor is critical for induction of effective immune tumor rejection, highlighting the importance of characterizing (and potentially intervening on) the diversity of tumor-infiltrating T cells. 
+
 
 The single-cell expression data [GSE120575](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE120575) consists of CD45+ single cells from 48 tumor biopsies of melanoma patients before or after checkpoint inhibitors treatment, and sequenced using the Smart-seq2 protocol. Meta-data on response to therapy (Responder vs. Non-responder) is also available on the same GEO identifier.
 
@@ -70,7 +69,7 @@ library(gridExtra)
 # scRNA-seq data preparation
 
 Download the count matrix and metadata from Gene Expression Omnibus (GEO), and store as Seurat object.
-```{r message=F, warning=F, results=F}
+```{r message=F, warning=F, cache=F}
 cached.object <- "SadeFeldman.seurat.rds"
 
 if(!file.exists(cached.object)){
@@ -89,7 +88,7 @@ if(!file.exists(cached.object)){
   exp.mat <- read.delim(sprintf("%s/%s/GSE120575_Sade_Feldman_melanoma_single_cells_TPM_GEO.txt.gz", datadir, geo_acc), header=F, sep="\t")
   genes <- exp.mat[c(-1,-2),1]
   cells <- as.vector(t(exp.mat[1,2:16292]))
-  patient <- as.factor(t(exp.mat[2,2:16292]))
+  samples <- as.factor(t(exp.mat[2,2:16292]))
   
   exp.mat <- exp.mat[c(-1,-2), 2:16292]
   colnames(exp.mat) <- cells
@@ -98,13 +97,14 @@ if(!file.exists(cached.object)){
   meta <- read.delim(sprintf("%s/%s/GSE120575_patient_ID_single_cells.txt.gz", datadir, geo_acc), header = T, sep = "\t", skip = 19, nrows = 16291)
   meta <- meta[,1:7]
   
-  treat <- factor(ifelse(grepl("Post", patient),'Post','Pre'))
+  treat <- factor(ifelse(grepl("Post", samples),'Post','Pre'))
   response <- factor(meta$characteristics..response)
   therapy <- factor(meta$characteristics..therapy)
   
   ##Create Seurat object and add meta data
   query.object <- CreateSeuratObject(counts = exp.mat, project = "SadeFeldman", min.cells = 10, min.features = 50)
-  query.object@meta.data$Patient <- patient
+  rm(exp.mat)
+  query.object@meta.data$Sample <- samples
   query.object@meta.data$Time <- treat
   query.object@meta.data$Response <- response
   query.object@meta.data$Therapy <- therapy
@@ -115,13 +115,20 @@ if(!file.exists(cached.object)){
 }
 ```
 
-Some basic stats
+Some basic statistics - cells per group (Pre vs. Post, Therapy, Responder vs. Non-responder)
 ```{r}
 table(query.object$Time)
 table(query.object$Therapy)
 table(query.object$Response)
-table(query.object$Patient)
+table(query.object$Sample)
 ```
+
+Select only baseline (Pre-treatment) samples
+```{r}
+query.object <- subset(query.object, subset = Time == "Pre")
+table(query.object$Sample)
+```
+
 
 # ProjecTILs
 
@@ -146,7 +153,7 @@ query.projected <- cellstate.predict(ref=ref, query=query.projected)
 table(query.projected$functional.cluster)
 ```
 
-Expression of marker genes of projected human T cells correspond reasonably well to those of the murine reference atlas
+Interestingly, expression of marker genes of projected human TILs correspond fairly well to those of the murine reference atlas: e.g. Pdcd1, Havcr2 and Entpd1 expression in terminally exhausted CD8 TILs (CD8_Tex), co-expression of Pdcd1, Tox and Tcf7 (at a modest level) in the CD8_Tpex state with a higher expression of Ifng; high expression of Tcf7, Ccr7 with low expression of Pdcd1 or cytotoxic molecules in the Naive-like states (that might include central memory cells); Cxcr5 and Tox coexpression in follicular helper T cells; Foxp3, Tox, Havcr2, Entpd1 in regulatory CD4 T cells, etc.
 ```{r, fig.width=16, fig.height=10}
 query.list <- SplitObject(query.projected, split.by = "Response")
 plot.states.radar(ref, query=query.list,min.cells = 50, 
@@ -164,23 +171,28 @@ Hs2Mm.convert.table[Hs2Mm.convert.table$Gene.HS %in% which.genes, ]
 
 # Response to therapy
 
-Now to the interesting part. Let's visualize the projection and T cell state distribution by response to therapy:
-```{r fig.heigh=8, fig.width=12}
+Now to the interesting part. 
+Let's visualize the projection and TIL contexture of tumors that responded or not responded following immune checkpoint blockade:
+```{r fig.height=12, fig.width=12, fig.align="center"}
 query.list <- SplitObject(query.projected, split.by = "Response")
 
 pll <- list()
 
 pll[[1]] <- plot.projection(ref, query.list[["Responder"]]) + ggtitle("Responder")
-pll[[2]] <- plot.statepred.composition(ref, query.list[["Responder"]], metric="Percent") + ggtitle("Responder")  + ylim(0,35)
+pll[[2]] <- plot.statepred.composition(ref, query.list[["Responder"]], metric="Percent") + ggtitle("Responder")  + ylim(0,40)
 pll[[3]] <- plot.projection(ref, query.list[["Non-responder"]]) + ggtitle("Non-responder")
-pll[[4]] <- plot.statepred.composition(ref, query.list[["Non-responder"]], metric="Percent") + ggtitle("Non-responder") + ylim(0,35)
+pll[[4]] <- plot.statepred.composition(ref, query.list[["Non-responder"]], metric="Percent") + ggtitle("Non-responder") + ylim(0,40)
 
-grid.arrange(grobs=pll, ncol=2, nrow=2)
+grid.arrange(grobs=pll, ncol=2, nrow=2, widths=c(1.5,1))
 ```
 
-To better examine the different in T cell phenotype composition between responders and non-responders, we can visualize the fold-change of T cell state frequency between the two groups:
-```{r fig.heigh=8, fig.width=4}
-which.types <- table(query.projected$functional.cluster)>100
+
+In non-responders, there is a clear enrichment in the terminally exhausted CD8 state (CD8_Tex), while responders are enriched in Naive-like states.
+
+To better examine differences in TIL contexture between responders and non-responders, we can visualize the fold-change of T cell state frequency between the two groups:
+```{r fig.heigh=8, fig.width=5, fig.align="center"}
+
+which.types <- table(query.projected$functional.cluster)>20
 
 stateColors_func <- c("#edbe2a","#A58AFF","#53B400","#F8766D","#00B6EB","#d1cfcc","#FF0000","#87f6a5","#e812dd")
 states_all <- levels(factor(ref$functional.cluster))
@@ -205,7 +217,19 @@ ggplot(tb.m, aes(x=Cell_state, y=Fold_change, fill=Cell_state)) + geom_bar(stat=
 
 ```
 
+Indeed, CD4 and CD8 Naive-like states are the most enriched in responders compared to non-responders, while terminally exhausted Entpd1+ Havcr2+ CD8 TILs are the most under-represented, confirming the observation of the original paper that a higher frequency of TCF7+ CD8 TILs is associated with response to immune checkpoint therapy. 
+
+# Conclusions
+
+Taking advantage of the ortholog mapping functionality of `ProjecTILs`, we have illustrated how to effortlessly analyze human scRNA-seq data in the context of a reference murine TIL atlas. Gene expression profiles confirmed that T cells are accurately projected in major CD4+ and CD8+ categories, as well as in more specific subtypes (CD8_Tex, CD8_Tpex, naive-like, Follicular helper, Th1, and regulatory CD4 cells). Comparing the baseline transcriptomics profile of TILs from melanoma patients responding and not responding to checkpoint inhibitors, and their composition in terms of cell states, confirms the observation of the original study that TCF7 correlates with checkpoint therapy responsivenss. 
+
+However, the enriched TCF7+ CD8 TIL population corresponds to a naive/central memory-like state that does not resemble the (Pdcd1+ Tox+) Precursor exhausted state that has been well described in murine cancer and chronic infections. We also observed that non-responding biopsies are enriched in regulatory CD4 T cells and depleted from helper T cells, which might also contribute to the reduced anti-tumor response following immunotherapy.
+ProjecTILs analysis in the context of a stable atlas gives a more complete picture of the T cell states that are associated with immunotherapy response.
 
 
+# Further reading
 
+Original publication - [Sade-Feldman et al. (2018) Cell](https://pubmed.ncbi.nlm.nih.gov/30388456/)
+
+ProjecTILs case studies - [INDEX](https://carmonalab.github.io/ProjecTILs_CaseStudies/) - [Repository](https://github.com/carmonalab/ProjecTILs_CaseStudies)
 
