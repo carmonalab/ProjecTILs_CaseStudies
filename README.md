@@ -8,6 +8,6 @@ See the first case study below:
 
 In [this case study](https://carmonalab.github.io/ProjecTILs_CaseStudies/Xiong19_TCR.html), we build an integrated scRNA-seq analysis workflow to interpret the **transcriptional** (scRNA-seq) and **clonal structure** (scTCR-seq) of tumor-infiltrating T cells in MC38 colon adenocarcinoma.
 
-# 2. [Project human data on mouse TIL atlas](https://carmonalab.github.io/ProjecTILs_CaseStudies/SadeFeldman_ortho.html)
+## 2. [Project human data on mouse TIL atlas](https://carmonalab.github.io/ProjecTILs_CaseStudies/SadeFeldman_ortho.html)
 
 Exploiting the ortholog mapping functionality of ProjecTILs, we project scRNA-seq from melanoma patients (Sade-Feldman, 2018) onto a mouse reference atlas, to interpret T cell phenotype differences between responders and non-responders to checkpoint blockade therapy.
