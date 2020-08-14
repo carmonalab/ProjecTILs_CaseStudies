@@ -55,7 +55,7 @@ library(renv)
 renv::restore()
 
 #Load development version of ProjecTILs (compatible with R v.4)
-remotes::install_git("https://gitlab.unil.ch/carmona/ProjecTILs.git", ref = "v0.4")
+remotes::install_git("https://gitlab.unil.ch/carmona/ProjecTILs.git", ref = "v0.4.1")
 
 library(scRepertoire)
 library(ProjecTILs)
@@ -220,7 +220,7 @@ Let's check the raw numbers
 table(query.projected@meta.data$cloneType,query.projected@meta.data$functional.cluster)
 ```
 
-This information in a plot:
+Plot clonal size by functional cluster
 ```{r}
 meta <- melt(table(query.projected@meta.data[!is.na(query.projected@meta.data$Frequency),c("functional.cluster","cloneType")]),varnames = c("functional.cluster","cloneType"))
 ggplot(data=meta, aes(x=functional.cluster, y=value, fill=cloneType)) +
@@ -271,6 +271,11 @@ compareClonotypes(meta.list, numbers = 6, samples = c("CD8_EffectorMemory", "CD8
 <br>
 The combination of `ProjecTILs` and `scRepertoire` simplifies the joint analysis of single-cell expression data and clonotype analysis, in the context of an annotated reference atlas of TIL states.
 
+# Further reading
+
+Original publication - [Xiong et al. (2019) Cancer Immunol Res](https://doi.org/10.1158/2326-6066.CIR-18-0750)
+
+ProjecTILs case studies - [INDEX](https://carmonalab.github.io/ProjecTILs_CaseStudies/) - [Repository](https://github.com/carmonalab/ProjecTILs_CaseStudies)
 
 
 
