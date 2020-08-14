@@ -82,6 +82,12 @@
       "Repository": "CRAN",
       "Hash": "b56998fff55e4a4b4860ad6e8c67e0f9"
     },
+    "GEOquery": {
+      "Package": "GEOquery",
+      "Version": "2.56.0",
+      "Source": "Bioconductor",
+      "Hash": "710325578289c959f057211c12311270"
+    },
     "GSEABase": {
       "Package": "GSEABase",
       "Version": "1.50.1",
@@ -280,7 +286,7 @@
       "RemoteUsername": "carmonalab",
       "RemoteRef": "HEAD",
       "RemoteSha": "6fdaf0da08c55f904256546cc7f2956d6bd03826",
-      "Hash": "b9bd0b7232be92a71763deb47f220581"
+      "Hash": "f5fb157eecc2382ac9ca3313e4faf2c1"
     },
     "VGAM": {
       "Package": "VGAM",
@@ -317,10 +323,10 @@
     },
     "ape": {
       "Package": "ape",
-      "Version": "5.4",
+      "Version": "5.4-1",
       "Source": "Repository",
       "Repository": "CRAN",
-      "Hash": "82370851316f464d3b04fd6f84ecfcb7"
+      "Hash": "08310cebe9ad2da068486b26b05e6030"
     },
     "askpass": {
       "Package": "askpass",
@@ -406,6 +412,13 @@
       "Repository": "CRAN",
       "Hash": "ff0becff7bfdfe3f75d29aff8f3172dd"
     },
+    "clipr": {
+      "Package": "clipr",
+      "Version": "0.7.0",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "08cf4045c149a0f0eaf405324c7495bd"
+    },
     "cluster": {
       "Package": "cluster",
       "Version": "2.1.0",
@@ -450,10 +463,10 @@
     },
     "cpp11": {
       "Package": "cpp11",
-      "Version": "0.1.0",
+      "Version": "0.2.1",
       "Source": "Repository",
       "Repository": "CRAN",
-      "Hash": "07ac25dbe65bfa02deac8ec3bf74fdd2"
+      "Hash": "c4c83167f43ca762a9fa998d4fead3ae"
     },
     "crayon": {
       "Package": "crayon",
@@ -632,17 +645,17 @@
     },
     "ggalluvial": {
       "Package": "ggalluvial",
-      "Version": "0.12.0",
+      "Version": "0.12.1",
       "Source": "Repository",
       "Repository": "CRAN",
-      "Hash": "f452264e04990ca066d288c4ca346d89"
+      "Hash": "85bed70c70720b1eb05ac46a0501cbc7"
     },
     "ggdendro": {
       "Package": "ggdendro",
-      "Version": "0.1-20",
+      "Version": "0.1.21",
       "Source": "Repository",
       "Repository": "CRAN",
-      "Hash": "717f50f776f501f48f080a517517c6de"
+      "Hash": "ef9b1339ba08658a5748f18ec9c45ffa"
     },
     "ggfittext": {
       "Package": "ggfittext",
@@ -747,6 +760,13 @@
       "Source": "Repository",
       "Repository": "CRAN",
       "Hash": "4dc5bb88961e347a0f4d8aad597cbfac"
+    },
+    "hms": {
+      "Package": "hms",
+      "Version": "0.5.3",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "726671f634529d470545f9fd1a9d1869"
     },
     "htmltools": {
       "Package": "htmltools",
@@ -873,6 +893,12 @@
       "Source": "Repository",
       "Repository": "CRAN",
       "Hash": "361811f31f71f8a617a9a68bf63f1f42"
+    },
+    "limma": {
+      "Package": "limma",
+      "Version": "3.44.3",
+      "Source": "Bioconductor",
+      "Hash": "dd56ef73b83f3f9393ae28c7549d78ab"
     },
     "listenv": {
       "Package": "listenv",
@@ -1085,10 +1111,10 @@
     },
     "ps": {
       "Package": "ps",
-      "Version": "1.3.3",
+      "Version": "1.3.4",
       "Source": "Repository",
       "Repository": "CRAN",
-      "Hash": "425d938eb9c02906a8ac98c0c2a306b5"
+      "Hash": "a54a7dfd68124abb2225dbfa9a85c457"
     },
     "purrr": {
       "Package": "purrr",
@@ -1103,6 +1129,13 @@
       "Source": "Repository",
       "Repository": "CRAN",
       "Hash": "8c8298583adbbe76f3c2220eef71bebc"
+    },
+    "readr": {
+      "Package": "readr",
+      "Version": "1.3.1",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "af8ab99cd936773a148963905736907b"
     },
     "remotes": {
       "Package": "remotes",
@@ -1416,6 +1449,13 @@
       "Source": "Repository",
       "Repository": "CRAN",
       "Hash": "b4106139b90981a8bfea9c10bab0baf1"
+    },
+    "xml2": {
+      "Package": "xml2",
+      "Version": "1.3.2",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "d4d71a75dd3ea9eb5fa28cc21f9585e2"
     },
     "xtable": {
       "Package": "xtable",

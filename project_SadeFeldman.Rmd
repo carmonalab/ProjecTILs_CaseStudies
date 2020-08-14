@@ -1,0 +1,198 @@
+---
+title: Human T cell states after checkpoint blockade
+date: "`r Sys.Date()`"
+author: "M. Andreatta and S. Carmona"
+output:
+  rmdformats::readthedown:
+    self-contained: true
+    highlight: haddock
+    thumbnails: false
+    css: styles.css
+knit: (function(input_file, encoding) {
+  out_dir <- 'docs';
+  rmarkdown::render(input_file, encoding=encoding,
+  output_file=file.path(dirname(input_file), out_dir, 'SadeFeldman_ortho.html'))})
+---
+
+```{r setup, echo=FALSE, cache=FALSE}
+#install.packages("rmdformats")
+#Template markdown setup
+library(knitr)
+library(rmdformats)
+
+## Global options
+options(max.print="75")
+opts_chunk$set(echo=TRUE,
+	             cache=TRUE,
+               prompt=FALSE,
+               tidy=TRUE,
+               comment=NA,
+               message=FALSE,
+               warning=FALSE,
+               dev='png')
+opts_knit$set(width=75)
+
+```
+
+
+In this case study, we will use ProjecTILs to interpret **human** scRNA-seq T cell data in the context of a **murine TIL atlas**. We are going to use the single-cell dataset by Sade-Feldman [GSE120575](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE120575) to illustrate **interspecies mapping** of human cells on a stable murine atlas using gene orthologs.
+
+# Background
+
+In the study by [Sade-Feldman et al. (2018) Cell](https://pubmed.ncbi.nlm.nih.gov/30388456/), the authours characterize the transcriptomics profile of immune cells from melanoma patients treated with checkpoint inhibitors, with the goal to identify factors that associate with success or failure of immune checkpoint therapy. They find that certain CD8+ T cell states associate with clinical outcome, and in particular that the transcription factor TCF7 is a significant marker for response to anti-PD-1 therapy. This suggests that the state of T cells found within a tumor is critical for induction of effective tumor immunity, highlighting the importance of characterizing (and potentially intervening on) the diversity of tumor-infiltraring T cells. 
+
+The single-cell expression data [GSE120575](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE120575) consists of CD45+ single cells from 48 tumor samples of melanoma patients treated with checkpoint inhibitors, and sequenced by Smart-seq2 technology. Meta-data on response to therapy (Responder vs. Non-responder) is also available on the same GEO identifier.
+
+Please use the development version of `ProjecTILs` >0.4.1, which implements ortholog gene conversion between human and mouse.
+
+# R Environment
+Check & load R packages
+```{r message=F, warning=F, results=F}
+Sys.setenv(R_REMOTES_NO_ERRORS_FROM_WARNINGS="true")
+
+if (!requireNamespace("renv")) 
+  install.packages("renv")
+library(renv)
+renv::restore()
+
+#Load development version of ProjecTILs (compatible with R v.4)
+remotes::install_git("https://gitlab.unil.ch/carmona/ProjecTILs.git", ref = "v0.4.1")
+
+library(ProjecTILs)
+library(gridExtra)
+```
+
+# scRNA-seq data preparation
+
+Download the count matrix and metadata from Gene Expression Omnibus (GEO)
+```{r message=F, warning=F}
+library(GEOquery)
+geo_acc <- "GSE120575"
+datadir <- "input/SadeFeldman"
+
+gse <- getGEO(geo_acc)
+
+series <- paste0(geo_acc, "_series_matrix.txt.gz")
+
+system(paste0("mkdir -p ", datadir))
+getGEOSuppFiles(geo_acc,baseDir=datadir)
+```
+
+Load expression matrix and metadata
+```{r}
+exp.mat <- read.delim(sprintf("%s/%s/GSE120575_Sade_Feldman_melanoma_single_cells_TPM_GEO.txt.gz", datadir, geo_acc), header=F, sep="\t")
+genes <- exp.mat[c(-1,-2),1]
+cells <- as.vector(t(exp.mat[1,2:16292]))
+patient <- as.factor(t(exp.mat[2,2:16292]))
+
+exp.mat <- exp.mat[c(-1,-2), 2:16292]
+colnames(exp.mat) <- cells
+rownames(exp.mat) <- genes
+
+treat <- factor(ifelse(grepl("Post", patient),'Post','Pre'))
+
+meta <- read.delim(sprintf("%s/%s/GSE120575_patient_ID_single_cells.txt.gz", datadir, geo_acc), header = T, sep = "\t", skip = 19, nrows = 16291)
+meta <- meta[,1:7]
+
+response <- factor(meta$characteristics..response)
+therapy <- factor(meta$characteristics..therapy)
+
+table(response)
+table(therapy)
+```
+
+
+Create Seurat object and add meta data
+```{r warning=F}
+query.object <- CreateSeuratObject(counts = exp.mat, project = "SadeFeldman", min.cells = 10, min.features = 50)
+query.object@meta.data$Patient <- patient
+query.object@meta.data$Time <- treat
+query.object@meta.data$Response <- response
+query.object@meta.data$Therapy <- therapy
+```
+
+# ProjecTILs
+
+Load reference TIL atlas - if it's not present in the working directory, it will be downloaded from the repository
+```{r}
+ref <- load.reference.map()
+```
+
+Run projection algorithm - version 0.4.1 supports human ortholog conversion (human.ortho=T)
+```{r}
+query.projected <- make.projection(query.object, ref=ref, human.ortho = T)
+```
+
+Plot global projection of new data over the reference in UMAP space
+```{r}
+plot.projection(ref, query.projected)
+```
+
+Predict the cell states in the query set
+```{r fig.height=6,fig.width=6}
+query.projected <- cellstate.predict(ref=ref, query=query.projected)
+table(query.projected$functional.cluster)
+```
+
+The expression profiles or some key genes correspond fairly well to those of the reference
+```{r, fig.height=5, fig.width=6}
+plot.states.radar(ref, query=query.list,min.cells = 50, 
+                  genes4radar = c("Foxp3","Cd4","Cd8a","Tcf7","Ccr7","Gzmb","Pdcd1","Havcr2","Tox","Entpd1","Cxcr5","Ifng"))
+
+```
+
+Note that projections and comparisons are performed in the ortholog space of murine genes - to check the names of human-mouse orthologs you can examine the conversion table for genes of interest:
+```{r}
+data(Hs2Mm.convert.table)
+which.genes <- c("TCF7","GZMB","CD8B","PDCD1")
+
+Hs2Mm.convert.table[Hs2Mm.convert.table$Gene.HS %in% which.genes, ]
+```
+
+# Response to therapy
+
+Now to the interesting part. Let's visualize the projection and T cell state distribution by response to therapy:
+```{r fig.heigh=4, fig.width=6}
+query.list <- SplitObject(query.projected, split.by = "Response")
+
+pll <- list()
+
+pll[[1]] <- plot.projection(ref, query.list[["Responder"]]) + ggtitle("Responder")
+pll[[2]] <- plot.statepred.composition(ref, query.list[["Responder"]], metric="Percent") + ggtitle("Responder")  + ylim(0,35)
+pll[[3]] <- plot.projection(ref, query.list[["Non-responder"]]) + ggtitle("Non-responder")
+pll[[4]] <- plot.statepred.composition(ref, query.list[["Non-responder"]], metric="Percent") + ggtitle("Non-responder") + ylim(0,35)
+
+grid.arrange(grobs=plots, ncol=2, nrow=2)
+```
+
+To better examine the different in T cell phenotype composition between rsponders and non-responders, we can visualize the fold-change of T cell state frequency between the two groups:
+```{r}
+which.types <- table(query.projected$functional.cluster)>100
+
+stateColors_func <- c("#edbe2a","#A58AFF","#53B400","#F8766D","#00B6EB","#d1cfcc","#FF0000","#87f6a5","#e812dd")
+states_all <- levels(factor(ref$functional.cluster))
+names(stateColors_func) <- states_all
+cols_use <- stateColors_func[names(which.types)][which.types]
+
+#Responder vs non Responder
+query.list <- SplitObject(query.projected, split.by = "Response")
+
+norm.c <- table(query.list[["Non-responder"]]$functional.cluster)/sum(table(query.list[["Non-responder"]]$functional.cluster))
+norm.q <- table(query.list[["Responder"]]$functional.cluster)/sum(table(query.list[["Responder"]]$functional.cluster))
+
+foldchange <- norm.q[which.types]/norm.c[which.types]
+foldchange <- sort(foldchange,decreasing = T)
+
+tb.m <- melt(foldchange)
+colnames(tb.m) <- c("Cell_state","Fold_change")
+pll <- list()
+ggplot(tb.m, aes(x=Cell_state, y=Fold_change, fill=Cell_state)) + geom_bar(stat="identity") +
+  scale_fill_manual(values=cols_use) + geom_hline(yintercept = 1) + scale_y_continuous(trans='log2') +
+  theme(axis.text.x=element_blank(), legend.position="left") + ggtitle("Responder vs. Non-responder") 
+
+```
+
+
+
+
+
