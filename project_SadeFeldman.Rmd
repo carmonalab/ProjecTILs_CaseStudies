@@ -65,51 +65,57 @@ library(gridExtra)
 
 # scRNA-seq data preparation
 
-Download the count matrix and metadata from Gene Expression Omnibus (GEO)
-```{r message=F, warning=F}
-library(GEOquery)
-geo_acc <- "GSE120575"
-datadir <- "input/SadeFeldman"
+Download the count matrix and metadata from Gene Expression Omnibus (GEO), and store as Seurat object.
+```{r message=F, warning=F, results=F}
+cached.object <- "SadeFeldman.seurat.rds"
 
-gse <- getGEO(geo_acc)
-
-series <- paste0(geo_acc, "_series_matrix.txt.gz")
-
-system(paste0("mkdir -p ", datadir))
-getGEOSuppFiles(geo_acc,baseDir=datadir)
+if(!file.exists(cached.object)){
+  
+  library(GEOquery)
+  geo_acc <- "GSE120575"
+  datadir <- "input/SadeFeldman"
+  gse <- getGEO(geo_acc)
+  
+  series <- paste0(geo_acc, "_series_matrix.txt.gz")
+  
+  system(paste0("mkdir -p ", datadir))
+  getGEOSuppFiles(geo_acc,baseDir=datadir)
+  
+  ##Load expression matrix and metadata
+  exp.mat <- read.delim(sprintf("%s/%s/GSE120575_Sade_Feldman_melanoma_single_cells_TPM_GEO.txt.gz", datadir, geo_acc), header=F, sep="\t")
+  genes <- exp.mat[c(-1,-2),1]
+  cells <- as.vector(t(exp.mat[1,2:16292]))
+  patient <- as.factor(t(exp.mat[2,2:16292]))
+  
+  exp.mat <- exp.mat[c(-1,-2), 2:16292]
+  colnames(exp.mat) <- cells
+  rownames(exp.mat) <- genes
+  
+  meta <- read.delim(sprintf("%s/%s/GSE120575_patient_ID_single_cells.txt.gz", datadir, geo_acc), header = T, sep = "\t", skip = 19, nrows = 16291)
+  meta <- meta[,1:7]
+  
+  treat <- factor(ifelse(grepl("Post", patient),'Post','Pre'))
+  response <- factor(meta$characteristics..response)
+  therapy <- factor(meta$characteristics..therapy)
+  
+  ##Create Seurat object and add meta data
+  query.object <- CreateSeuratObject(counts = exp.mat, project = "SadeFeldman", min.cells = 10, min.features = 50)
+  query.object@meta.data$Patient <- patient
+  query.object@meta.data$Time <- treat
+  query.object@meta.data$Response <- response
+  query.object@meta.data$Therapy <- therapy
+  
+  saveRDS(query.object, file=cached.object)
+} else {
+  query.object <- readRDS(cached.object)
+}
 ```
 
-Load expression matrix and metadata
-```{r cache=FALSE}
-exp.mat <- read.delim(sprintf("%s/%s/GSE120575_Sade_Feldman_melanoma_single_cells_TPM_GEO.txt.gz", datadir, geo_acc), header=F, sep="\t")
-genes <- exp.mat[c(-1,-2),1]
-cells <- as.vector(t(exp.mat[1,2:16292]))
-patient <- as.factor(t(exp.mat[2,2:16292]))
-
-exp.mat <- exp.mat[c(-1,-2), 2:16292]
-colnames(exp.mat) <- cells
-rownames(exp.mat) <- genes
-
-treat <- factor(ifelse(grepl("Post", patient),'Post','Pre'))
-
-meta <- read.delim(sprintf("%s/%s/GSE120575_patient_ID_single_cells.txt.gz", datadir, geo_acc), header = T, sep = "\t", skip = 19, nrows = 16291)
-meta <- meta[,1:7]
-
-response <- factor(meta$characteristics..response)
-therapy <- factor(meta$characteristics..therapy)
-
-table(response)
-table(therapy)
-```
-
-
-Create Seurat object and add meta data
-```{r warning=F}
-query.object <- CreateSeuratObject(counts = exp.mat, project = "SadeFeldman", min.cells = 10, min.features = 50)
-query.object@meta.data$Patient <- patient
-query.object@meta.data$Time <- treat
-query.object@meta.data$Response <- response
-query.object@meta.data$Therapy <- therapy
+Some basic stats
+```{r}
+table(query.object$Time)
+table(query.object$Therapy)
+table(query.object$Response)
 ```
 
 # ProjecTILs
@@ -136,7 +142,7 @@ table(query.projected$functional.cluster)
 ```
 
 The expression profiles or some key genes correspond fairly well to those of the reference
-```{r, fig.height=5, fig.width=6}
+```{r, fig.width=16, fig.height=10}
 query.list <- SplitObject(query.projected, split.by = "Response")
 plot.states.radar(ref, query=query.list,min.cells = 50, 
                   genes4radar = c("Foxp3","Cd4","Cd8a","Tcf7","Ccr7","Gzmb","Pdcd1","Havcr2","Tox","Entpd1","Cxcr5","Ifng"))
@@ -154,7 +160,7 @@ Hs2Mm.convert.table[Hs2Mm.convert.table$Gene.HS %in% which.genes, ]
 # Response to therapy
 
 Now to the interesting part. Let's visualize the projection and T cell state distribution by response to therapy:
-```{r fig.heigh=4, fig.width=6}
+```{r fig.heigh=8, fig.width=12}
 query.list <- SplitObject(query.projected, split.by = "Response")
 
 pll <- list()
@@ -164,11 +170,11 @@ pll[[2]] <- plot.statepred.composition(ref, query.list[["Responder"]], metric="P
 pll[[3]] <- plot.projection(ref, query.list[["Non-responder"]]) + ggtitle("Non-responder")
 pll[[4]] <- plot.statepred.composition(ref, query.list[["Non-responder"]], metric="Percent") + ggtitle("Non-responder") + ylim(0,35)
 
-grid.arrange(grobs=plots, ncol=2, nrow=2)
+grid.arrange(grobs=pll, ncol=2, nrow=2)
 ```
 
 To better examine the different in T cell phenotype composition between rsponders and non-responders, we can visualize the fold-change of T cell state frequency between the two groups:
-```{r}
+```{r fig.heigh=8, fig.width=4}
 which.types <- table(query.projected$functional.cluster)>100
 
 stateColors_func <- c("#edbe2a","#A58AFF","#53B400","#F8766D","#00B6EB","#d1cfcc","#FF0000","#87f6a5","#e812dd")
