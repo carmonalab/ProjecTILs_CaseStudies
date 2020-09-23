@@ -1223,15 +1223,15 @@
     },
     "scRepertoire": {
       "Package": "scRepertoire",
-      "Version": "0.99.7",
+      "Version": "0.99.16",
       "Source": "GitHub",
       "RemoteType": "github",
       "RemoteHost": "api.github.com",
       "RemoteRepo": "scRepertoire",
       "RemoteUsername": "ncborcherding",
       "RemoteRef": "HEAD",
-      "RemoteSha": "960675b536fda361fe3c354deb98239b106ad61f",
-      "Hash": "33e404fb9251abf56d56e891a7dd62ca"
+      "RemoteSha": "6ab523d29c21fdfdd2b3b9b977360c5f7f3de463",
+      "Hash": "d151040170c5b6e19d3e42e55bfec5ea"
     },
     "scales": {
       "Package": "scales",
@@ -1438,10 +1438,10 @@
     },
     "withr": {
       "Package": "withr",
-      "Version": "2.2.0",
+      "Version": "2.3.0",
       "Source": "Repository",
       "Repository": "CRAN",
-      "Hash": "ecd17882a0b4419545691e095b74ee89"
+      "Hash": "7307d79f58d1885b38c4f4f1a8cb19dd"
     },
     "xfun": {
       "Package": "xfun",

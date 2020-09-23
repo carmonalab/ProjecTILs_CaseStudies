@@ -232,7 +232,7 @@ This confirms the intial observation that **Tex** and **Tpex** present the large
 We can highlight specific clonotypes on the reference atlas (here those with at least 40 cells):
 ```{r fig.width=15, fig.height=20}
 clone_call = "CTaa"   #select column/variable to use as clonotypes ID, in this case CTaa, the paired TCR CDR3 aminoacid sequences
-cutoff <- 40 #Min cells for clonotype
+cutoff <- 35 #Min cells for clonotype
 
 clonotypeSizes <- sort(table(query.projected[[clone_call]])[table(query.projected[[clone_call]])>cutoff],decreasing = T)
 
