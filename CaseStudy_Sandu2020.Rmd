@@ -1,0 +1,256 @@
+---
+title: Diversity of CD8 T cells in chronic infection for six different tissues
+date: "`r Sys.Date()`"
+author: "M. Andreatta and S. Carmona"
+output:
+  rmdformats::readthedown:
+    self-contained: true
+    highlight: haddock
+    thumbnails: false
+    css: styles.css
+knit: (function(input_file, encoding) {
+  out_dir <- 'docs';
+  rmarkdown::render(input_file, encoding=encoding,
+  output_file=file.path(dirname(input_file), out_dir, 'Sandu_LCMV.html'))})
+---
+
+
+
+```{r setup, echo=FALSE}
+#install.packages("rmdformats")
+#Template markdown setup
+library(knitr)
+library(rmdformats)
+library(formatR)
+
+## Global options
+options(max.print="75")
+opts_chunk$set(echo=TRUE,
+	             cache=TRUE,
+               cache.lazy=FALSE,
+               prompt=FALSE,
+               tidy=TRUE,
+               comment=NA,
+               message=FALSE,
+               warning=FALSE,
+               dev='png')
+opts_knit$set(width=75)
+
+```
+
+# Background
+
+During chronic infection and cancer, prolonged antigen stimulation leads T cells to progressively lose effector function, a process often called **"T cell exhaustion".** The lymphocytic choriomeningitis virus (LCMV) model is one of the best-studied model systems of viral infection in mouse, and has been instrumental in elucidating the biology of T cell exhaustion. In the context of chronic LCMV infection, most studies focus on virus-specific T cells from spleen. The recent study by [Sandu et al.](https://www.sciencedirect.com/science/article/pii/S2211124720310639) applied single-cell sequencing to study CD8 T cell diversity in six different tissues (spleen, blood, bone marrow, lymph node, liver and lung), to determine how the tissue microenvironment affects and shapes T cell phenotypes. They found that T cells adopt tissue-specific transcriptomics profiles, with differential expression of specific genes in different organs, e.g. in genes related to antigen encounter and TCR activation.
+
+In this case study, we applied **ProjecTILs** to re-analyze the single-cell data from Sandu et al. and study tissue-specific T cell heterogeneity in the context of a LCMV reference atlas. Raw data are available from the [European Nucleotide Archive](https://www.ebi.ac.uk/ena/browser/view/PRJEB36998); for convenience, we will start the analysis from the 10x gene-expression matrices available at [Sandu_CellReports2020.tar.gz](https://drive.switch.ch/index.php/s/Hv9wMuHZz4p3cyb/download), kindly provided by the authors.
+
+The reference atlas of virus-specific CD8 T cells used in this case study can be explored interactively at: [http://virustcellatlas.unil.ch/](http://virustcellatlas.unil.ch/)
+
+
+# R Environment
+Check & load R packages
+```{r message=F, warning=F, results=F, cache=F}
+Sys.setenv(R_REMOTES_NO_ERRORS_FROM_WARNINGS="true")
+
+library(renv)
+renv::restore()
+
+#Load current version of ProjecTILs
+remotes::install_github("carmonalab/ProjecTILs", ref="v0.6.0")
+
+library(Seurat)
+library(ProjecTILs)
+library(ggplot2)
+library(reshape2)
+library(gridExtra)
+```
+
+# Download and process single-cell data
+
+First download the gene epxression data: [Sandu_CellReports2020.tar.gz](https://drive.switch.ch/index.php/s/Hv9wMuHZz4p3cyb/download), and *untar* the file to a convenient location (e.g. in the *input* folder).
+
+The folder P14_tissues contains single-cell expression matrices for 6 tissues (blood, spleen, bone marrow, lymph node, lung and liver). They will be stored in a single Seurat object for further processing.
+
+```{r}
+ddir <- "input/P14_tissues"
+
+tissues <- c("Blood","Spleen","BM","LN","Lung","Liver")
+folders <- c("1_blood","2_spleen","3_BM","4_LN","5_Lung","6_Liver")
+
+query.list <- list()
+
+for (i in seq_along(folders)) {
+  
+  mpath <- sprintf("%s/%s",ddir,folders[i])   
+  query.list[[i]] <- read.sc.query(mpath, type="10x", min.cells = 3, min.features = 50)
+  query.list[[i]] <- RenameCells(query.list[[i]], add.cell.id = paste0("S",i))
+  query.list[[i]]$Tissue <- tissues[i]
+}   
+
+query.merged <- Reduce(merge, query.list)
+
+table(query.merged$Tissue)
+
+```
+
+# Basic quality checks
+
+Run some basic QC for ribosomal and mitochondrial gene content, and minimum number of genes and UMIs.
+```{r}
+percent.ribo.dv <- PercentageFeatureSet(query.merged, pattern = "^Rp[ls]")
+percent.mito.dv <- PercentageFeatureSet(query.merged, pattern = "^mt-")
+
+query.merged <- AddMetaData(query.merged, metadata = percent.ribo.dv, col.name = "percent.ribo")
+query.merged <- AddMetaData(query.merged, metadata = percent.mito.dv, col.name = "percent.mito")
+```
+
+```{r}
+Idents(query.merged) <- "Tissue"
+pl <- VlnPlot(query.merged , features = c("nFeature_RNA","nCount_RNA","percent.ribo","percent.mito"), ncol = 2, pt.size=0.001, combine=FALSE, split.by = "Tissue")
+
+pll <- list()
+for (i in seq_along(pl)) {
+   pll[[i]] = pl[[i]] + theme(axis.text.x = element_blank())
+}
+
+plot(do.call("arrangeGrob", c(pll, ncol=2)))
+```
+
+
+Filter outlier cells
+```{r}
+dim(query.merged)
+query.merged <- subset(query.merged, subset = nFeature_RNA>500 & nFeature_RNA<4000 & 
+                       nCount_RNA>1000 & nCount_RNA<15000 &
+                       percent.ribo < 50 & percent.mito < 5)
+dim(query.merged)
+```
+
+# ProjecTILs analysis
+
+Download the CD8 T cell atlas for infection from figshare: [LCMV reference atlas](https://ndownloader.figshare.com/files/23166794)
+Save the *ref_LCMV_Atlas_mouse_v1.rds* object in your working directory, and the load it into memory to inspect it:
+
+```{r}
+ref <- load.reference.map("ref_LCMV_Atlas_mouse_v1.rds")
+
+# reproduce cluster colors
+library(scales)
+functional.cluster.colors <- hue_pal()(7)
+functional.cluster.colors <- functional.cluster.colors[c(4,3,2,5,1,6,7)]
+names(functional.cluster.colors) <- levels(ref$functional.cluster)
+
+
+DimPlot(ref, reduction = "umap", label = TRUE, pt.size = 0.5, group.by = "functional.cluster", dims = c(2,1), cols = functional.cluster.colors) + 
+  NoLegend() + theme(aspect.ratio = 1)  + scale_x_reverse() + scale_y_reverse() + ggtitle("Reference CD8 LCMV atlas")
+
+```
+
+An interactive version of the reference atlas can also be explored at [http://virustcellatlas.unil.ch/](http://virustcellatlas.unil.ch/)
+
+
+Now we have loaded the query samples in a Seurat object, and an atlas object to be used as reference. The following commands will split the query data by tissue, and project each sample independently onto the reference T cell atlas.
+
+```{r message=F, warning=F, results=F}
+querydata <- SplitObject(query.merged, split.by = "Tissue")
+query.projected <- make.projection(querydata, ref=ref)
+```
+
+
+## Tissue-specific T cell state composition
+
+We can inspect how the cells from different tissues distribute across the map.
+```{r cache=FALSE}
+pll <- list()
+for (i in seq_along(query.projected)) {
+   s <- names(query.projected)[i]
+   query.projected[[s]] <- cellstate.predict(ref=ref, query=query.projected[[s]])
+   pll[[i]] <- plot.projection(ref, query.projected[[s]], pointsize = 0.3, linesize = 0.3, cols=functional.cluster.colors)  + 
+      theme_bw() + theme(aspect.ratio = 0.8) + scale_x_reverse() + scale_y_reverse() + coord_flip() + NoLegend() + ggtitle(s)
+}
+g <- do.call("arrangeGrob", c(pll, ncol=3))
+plot(g)
+```
+
+We can already surmise that cells from different tissues occupy diverse areas of the reference atlas. More quantitavely, we can calculate the fraction of cells assigned into each T cell subtype for different tissues:
+
+```{r fig.height=5, fig.width=5, cache=FALSE}
+#Reorder colors (to resemble order in Sandu Figure 2J)
+cols_use <- functional.cluster.colors[c(3,1,4,2,7,6,5)]
+states_all <- levels(factor(names(functional.cluster.colors), levels = names(cols_use)))
+
+m <- matrix(nrow=length(names(query.projected)), ncol = length(states_all))
+rownames(m) <- names(query.projected)
+colnames(m) <- states_all
+for (i in seq_along(query.projected)) {
+   tb <- table(factor(query.projected[[i]]$functional.cluster, levels = states_all))
+   m[i,] <- tb * 100/sum(tb)
+}
+
+melt <- melt(m)
+colnames(melt) <- c("Tissue", "Cell_state","Percent")
+
+p <- ggplot(melt, aes(x = Tissue, y = Percent, fill = Cell_state)) + geom_bar(stat = "identity", position = "stack") + 
+            scale_fill_manual(values = functional.cluster.colors)  + theme_light() + theme(legend.position = "right")
+p
+```
+
+Note that *Tex* cells constitute the majority of T cells for all tissues, as expected in this infection model. However, different tissues were composed of variable fractions of other T cell subtypes. For instance, lung, blood and spleen had the highest percentage of effector cells (SLEC), while lymphnode and spleen had an exceeding percentage of Tpex cells compared to other tissues. Compare this chart with Figure 2J from the [original paper](https://www.sciencedirect.com/science/article/pii/S2211124720310639). While Sandu et al. defined fewer T cell states compared to our reference atlas for infection, the tissue-specific composition for the main T cell subtypes showed a remarkable correspondence between the ProjecTILs prediction and the original, unsupervised analysis.
+
+## Gene expression
+
+To confirm that the projection to the reference states was accurate, we can also inspect the gene expression profiles of T cells from different tissues with respect to the reference profiles.
+```{r fig.height=8, fig.width=11, cache=FALSE}
+genes4radar = c("Cd8a","Tcf7","Ccr7","Gzmb","Slamf6","Pdcd1","Havcr2","Tox","Entpd1","Cx3cr1","Cxcr6","Xcl1","Mki67")
+
+g <- plot.states.radar(ref, query=query.projected, min.cells = 200, genes4radar = genes4radar, return=T)
+plot(g)
+```
+
+
+## Discriminant gene analysis
+
+The projection analysis showed that different tissues are composed of different proportions of broad T cell states. However, we may also ask whether there is variability between cells *within* specific reference T cell states. For instance, do effector (SLEC) cells from blood differential express genes compared to spleen SLEC cells? do terminally exhausted (Tex) cells from liver differ from Tex cells from spleen?
+
+We can answer these questions by performing subtype-specific differential expression analysis using the `find.discriminat.genes` function of ProjecTILs, specifying a pairs of tissues and a reference cell state. The library `EnhancedVolcano` is recommended to visualize the differential expression results:
+
+```{r cache=FALSE}
+#BiocManager::install("EnhancedVolcano")
+library(EnhancedVolcano)
+
+deg <- find.discriminant.genes(ref, query.projected[["Blood"]], query.control=query.projected[["Spleen"]], 
+                              state="SLEC", min.pct = 0.1, logfc.threshold = 0.1, query.assay = "RNA")
+EnhancedVolcano(deg, lab = rownames(deg),x = 'avg_logFC', y = 'p_val', pCutoff = 10e-10, FCcutoff = 0.5, labSize = 5,
+                legendPosition = 'none', drawConnectors = F,
+                 title = 'Blood vs. Spleen (SLEC)')
+
+
+
+deg2 <- find.discriminant.genes(ref, query.projected[["Liver"]], query.control=query.projected[["Spleen"]], state="Tex", min.pct = 0.1, logfc.threshold = 0.1)
+EnhancedVolcano(deg2, lab = rownames(deg2),x = 'avg_logFC', y = 'p_val', pCutoff = 10e-10, FCcutoff = 0.5, labSize = 5,
+                legendPosition = 'none', drawConnectors = F,
+                 title = 'Liver vs. Spleen (Tex)')
+
+```
+
+Differential expression between blood and spleen in that SLEC cells in spleen overexpress markers of activation like Nfkbia, Nr4a1 and Cd69, indicating that these cells may have recently encountered antigen, unlike circulating cells. A similar observation can be made for Tex cells from liver and spleen, but in this case also a significant overexpression of Gzma in liver is observed, as also noted in the original study. 
+
+# Conclusions
+
+In the study by Sandu et al., the authors described the heterogeneity of CD8 T cells across multiple tissues, using a “traditional” approach based on unsupervised clustering, classification and differential expression. Definition of cell clusters, including considerations about batch-effects vs. tissue-related biological differences, the annotation of meaningful cell types, the differential expression analyses to determine inter-subtype differences as well as inter-tissue differences, all required an enormous amount of curation and expertise about the system under study.
+
+With this case study, we showed how ProjecTILs can lead to very similar results with minimal effort and domain expertise. We found that tissue-specific composition of T cell subtypes predicted by ProjecTILs correlates very well with the subtypes defined by the original study in an unsupervised way, and could detect specific genes and gene modules associated with specific tissues and T cell subtypes. 
+
+
+# Further reading
+
+Original publication - [Sandu et al. (2020) Cell Reports](https://www.sciencedirect.com/science/article/pii/S2211124720310639)
+
+ProjecTILs case studies - [INDEX](https://carmonalab.github.io/ProjecTILs_CaseStudies/) - [Repository](https://github.com/carmonalab/ProjecTILs_CaseStudies)
+
+The ProjecTILs method [pre-print](https://doi.org/10.1101/2020.06.23.166546) and [code](https://github.com/carmonalab/ProjecTILs)
+
+
+# References
+
+* Sandu I, Cerletti D, Oetiker N, Borsa M, Wagen F, Spadafora I, Welten SP, Stolz U, Oxenius A, Claassen M. Landscape of exhausted virus-specific CD8 T cells in chronic LCMV infection. *Cell Reports.* **2020** Aug 25;32(8):108078.
