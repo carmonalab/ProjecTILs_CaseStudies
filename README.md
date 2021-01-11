@@ -11,3 +11,8 @@ In [this case study](https://carmonalab.github.io/ProjecTILs_CaseStudies/Xiong19
 ## 2. [Project human data on mouse TIL atlas](https://carmonalab.github.io/ProjecTILs_CaseStudies/SadeFeldman_ortho.html)
 
 Exploiting the ortholog mapping functionality of ProjecTILs, we project scRNA-seq from melanoma patients (Sade-Feldman, 2018) onto a mouse reference atlas, to interpret T cell phenotype differences between responders and non-responders to checkpoint blockade therapy.
+
+## 3. [T cell diversity across multiple tissues](https://carmonalab.github.io/ProjecTILs_CaseStudies/Sandu_LCMV.html)
+
+Apply ProjecTILs to investigate transcriptional profiles of CD8 T cells in chronic infection from **six different tissues.**
+

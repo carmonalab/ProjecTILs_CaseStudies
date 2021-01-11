@@ -106,7 +106,8 @@ query.merged <- AddMetaData(query.merged, metadata = percent.mito.dv, col.name =
 
 ```{r}
 Idents(query.merged) <- "Tissue"
-pl <- VlnPlot(query.merged , features = c("nFeature_RNA","nCount_RNA","percent.ribo","percent.mito"), ncol = 2, pt.size=0.001, combine=FALSE, split.by = "Tissue")
+pl <- VlnPlot(query.merged , features = c("nFeature_RNA","nCount_RNA","percent.ribo","percent.mito"), 
+              ncol = 2, pt.size=0.001, combine=FALSE, split.by = "Tissue")
 
 pll <- list()
 for (i in seq_along(pl)) {
@@ -141,8 +142,9 @@ functional.cluster.colors <- functional.cluster.colors[c(4,3,2,5,1,6,7)]
 names(functional.cluster.colors) <- levels(ref$functional.cluster)
 
 
-DimPlot(ref, reduction = "umap", label = TRUE, pt.size = 0.5, group.by = "functional.cluster", dims = c(2,1), cols = functional.cluster.colors) + 
-  NoLegend() + theme(aspect.ratio = 1)  + scale_x_reverse() + scale_y_reverse() + ggtitle("Reference CD8 LCMV atlas")
+DimPlot(ref, reduction = "umap", label = TRUE, pt.size = 0.5, group.by = "functional.cluster", dims = c(2,1),
+        cols = functional.cluster.colors) + NoLegend() + theme(aspect.ratio = 1) +
+        scale_x_reverse() + scale_y_reverse() + ggtitle("Reference CD8 LCMV atlas")
 
 ```
 
@@ -210,7 +212,7 @@ plot(g)
 
 ## Discriminant gene analysis
 
-The projection analysis showed that different tissues are composed of different proportions of broad T cell states. However, we may also ask whether there is variability between cells *within* specific reference T cell states. For instance, do effector (SLEC) cells from blood differential express genes compared to spleen SLEC cells? do terminally exhausted (Tex) cells from liver differ from Tex cells from spleen?
+The projection analysis showed that different tissues are composed of different proportions of broad T cell states. However, we may also ask whether there is variability between cells *within* specific reference T cell states. For instance, do effector (SLEC) cells from blood differentially express genes compared to spleen SLEC cells? do terminally exhausted (Tex) cells from liver differ from Tex cells from spleen?
 
 We can answer these questions by performing subtype-specific differential expression analysis using the `find.discriminat.genes` function of ProjecTILs, specifying a pairs of tissues and a reference cell state. The library `EnhancedVolcano` is recommended to visualize the differential expression results:
 
@@ -249,8 +251,3 @@ Original publication - [Sandu et al. (2020) Cell Reports](https://www.sciencedir
 ProjecTILs case studies - [INDEX](https://carmonalab.github.io/ProjecTILs_CaseStudies/) - [Repository](https://github.com/carmonalab/ProjecTILs_CaseStudies)
 
 The ProjecTILs method [pre-print](https://doi.org/10.1101/2020.06.23.166546) and [code](https://github.com/carmonalab/ProjecTILs)
-
-
-# References
-
-* Sandu I, Cerletti D, Oetiker N, Borsa M, Wagen F, Spadafora I, Welten SP, Stolz U, Oxenius A, Claassen M. Landscape of exhausted virus-specific CD8 T cells in chronic LCMV infection. *Cell Reports.* **2020** Aug 25;32(8):108078.
