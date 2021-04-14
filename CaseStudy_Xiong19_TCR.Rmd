@@ -54,8 +54,8 @@ if (!requireNamespace("renv"))
 library(renv)
 renv::restore()
 
-#Load development version of ProjecTILs (compatible with R v.4)
-remotes::install_git("https://gitlab.unil.ch/carmona/ProjecTILs.git", ref = "v0.4.1")
+#Load development version of ProjecTILs
+remotes::install_github("carmonalab/ProjecTILs", ref="dev")
 
 library(scRepertoire)
 library(ProjecTILs)

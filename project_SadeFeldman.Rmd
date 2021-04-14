@@ -48,7 +48,7 @@ In the study by [Sade-Feldman et al. (2018) Cell](https://pubmed.ncbi.nlm.nih.go
 
 The single-cell expression data [GSE120575](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE120575) consists of CD45+ single cells from 48 tumor biopsies of melanoma patients before or after checkpoint inhibitors treatment, sequenced using the Smart-seq2 protocol. Meta-data on response to therapy (Responder vs. Non-responder) is also available on the same GEO identifier.
 
-Here we use the development version of `ProjecTILs` >0.4.1, which implements ortholog gene conversion between human and mouse.
+Here we use `ProjecTILs` >0.4.1, which implements ortholog gene conversion between human and mouse.
 
 # R Environment
 Check & load R packages
@@ -61,7 +61,8 @@ library(renv)
 renv::restore()
 
 #Load development version of ProjecTILs implementig human-mouse ortholog conversion
-remotes::install_git("https://gitlab.unil.ch/carmona/ProjecTILs.git", ref = "v0.4.1")
+remotes::install_github("carmonalab/ProjecTILs", ref="dev")
+
 
 library(Seurat)
 library(ProjecTILs)
@@ -138,9 +139,9 @@ Load reference TIL atlas - if it's not present in the working directory, it will
 ref <- load.reference.map()
 ```
 
-Run ProjecTILs projection algorithm - version 0.4.1 supports human ortholog conversion (human.ortho=T).
+Run ProjecTILs projection algorithm - note that human genes will be converted to mouse orthologs.
 
-Note that non-T cells are automatically detected and removed before projection.
+Also, non-T cells are automatically detected and removed before projection.
 ```{r}
 query.projected <- make.projection(query.object, ref=ref, human.ortho = T)
 ```

@@ -56,7 +56,8 @@ library(renv)
 renv::restore()
 
 #Load current version of ProjecTILs
-remotes::install_github("carmonalab/ProjecTILs", ref="v0.6.0")
+remotes::install_github("carmonalab/ProjecTILs", ref="dev")
+
 
 library(Seurat)
 library(ProjecTILs)
@@ -150,14 +151,23 @@ DimPlot(ref, reduction = "umap", label = TRUE, pt.size = 0.5, group.by = "functi
 
 An interactive version of the reference atlas can also be explored at [http://virustcellatlas.unil.ch/](http://virustcellatlas.unil.ch/)
 
+**Optional:** to speed up computation (and if our machine has large enough memory), we can run projection in parallel for individual samples, by setting the parameter `ncores` to the number of parallel processes. We will also have to tell `future` that we need more memory:
+
+```{r message=F, warning=F, results=F}
+#For example, to allow 3GB of RAM, and run on 6 computing cores:
+mem_in_mb <- 3000
+options(future.globals.maxSize= mem_in_mb*1024^2)
+
+ncores <- 6
+```
 
 Now we have loaded the query samples in a Seurat object, and an atlas object to be used as reference. The following commands will split the query data by tissue, and project each sample independently onto the reference T cell atlas.
 
 ```{r message=F, warning=F, results=F}
 querydata <- SplitObject(query.merged, split.by = "Tissue")
-query.projected <- make.projection(querydata, ref=ref)
+#For serial processing, just set ncores=1
+query.projected <- make.projection(querydata, ref=ref, ncores=ncores)
 ```
-
 
 ## Tissue-specific T cell state composition
 
@@ -222,14 +232,14 @@ library(EnhancedVolcano)
 
 deg <- find.discriminant.genes(ref, query.projected[["Blood"]], query.control=query.projected[["Spleen"]], 
                               state="SLEC", min.pct = 0.1, logfc.threshold = 0.1, query.assay = "RNA")
-EnhancedVolcano(deg, lab = rownames(deg),x = 'avg_logFC', y = 'p_val', pCutoff = 10e-10, FCcutoff = 0.5, labSize = 5,
+EnhancedVolcano(deg, lab = rownames(deg),x = 'avg_log2FC', y = 'p_val', pCutoff = 10e-10, FCcutoff = 0.5, labSize = 5,
                 legendPosition = 'none', drawConnectors = F,
                  title = 'Blood vs. Spleen (SLEC)')
 
 
 
 deg2 <- find.discriminant.genes(ref, query.projected[["Liver"]], query.control=query.projected[["Spleen"]], state="Tex", min.pct = 0.1, logfc.threshold = 0.1)
-EnhancedVolcano(deg2, lab = rownames(deg2),x = 'avg_logFC', y = 'p_val', pCutoff = 10e-10, FCcutoff = 0.5, labSize = 5,
+EnhancedVolcano(deg2, lab = rownames(deg2),x = 'avg_log2FC', y = 'p_val', pCutoff = 10e-10, FCcutoff = 0.5, labSize = 5,
                 legendPosition = 'none', drawConnectors = F,
                  title = 'Liver vs. Spleen (Tex)')
 
