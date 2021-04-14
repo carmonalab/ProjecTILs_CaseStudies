@@ -1,6 +1,6 @@
 # ProjecTILs Case Studies
 
-We will be posting here interesting/instructive case studies of single-cell data analysis using [ProjecTILs](https://github.com/carmonalab/ProjecTILs_CaseStudies)
+We will be posting here interesting/instructive case studies of single-cell data analysis using [ProjecTILs](https://github.com/carmonalab/ProjecTILs)
 
 See the first case study below:
 
