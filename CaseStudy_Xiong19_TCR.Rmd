@@ -19,6 +19,7 @@ knit: (function(input_file, encoding) {
 #Template markdown setup
 library(knitr)
 library(rmdformats)
+library(formatR)
 
 ## Global options
 options(max.print="75")
@@ -55,7 +56,7 @@ library(renv)
 renv::restore()
 
 #Load development version of ProjecTILs
-remotes::install_github("carmonalab/ProjecTILs", ref="dev")
+remotes::install_github("carmonalab/ProjecTILs", ref = "v1.0.0")
 
 library(scRepertoire)
 library(ProjecTILs)
@@ -165,7 +166,7 @@ Visualization of projected data.
 T cells are projected mostly in the Treg, CD8 Terminal exhausted (CD8_Tex) and Precursor exhausted (CD8_Tpex) areas, with some clusters in the T-helper (Th1) and CD8 Effector memory areas, and to a lesser extent in Naive-like and CD8 Early-Activated areas.
 ```{r fig1, fig.width=12, fig.height=5}
 p1 <- plot.projection(ref)
-p2 <- plot.projection(ref, query.projected)
+p2 <- plot.projection(ref, query.projected, linesize = 0.5, pointsize = 0.5)
 grid.arrange(p1,p2,ncol=2)
 ```
 

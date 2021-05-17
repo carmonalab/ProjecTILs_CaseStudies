@@ -56,7 +56,7 @@ library(renv)
 renv::restore()
 
 #Load current version of ProjecTILs
-remotes::install_github("carmonalab/ProjecTILs", ref="dev")
+remotes::install_github("carmonalab/ProjecTILs", ref="v1.0.0")
 
 
 library(Seurat)

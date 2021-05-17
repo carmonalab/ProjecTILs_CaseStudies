@@ -21,6 +21,7 @@ knit: (function(input_file, encoding) {
 #Template markdown setup
 library(knitr)
 library(rmdformats)
+library(formatR)
 
 ## Global options
 options(max.print="75")
@@ -61,7 +62,7 @@ library(renv)
 renv::restore()
 
 #Load development version of ProjecTILs implementig human-mouse ortholog conversion
-remotes::install_github("carmonalab/ProjecTILs", ref="dev")
+remotes::install_github("carmonalab/ProjecTILs", ref="v1.0.0")
 
 
 library(Seurat)
@@ -143,7 +144,7 @@ Run ProjecTILs projection algorithm - note that human genes will be converted to
 
 Also, non-T cells are automatically detected and removed before projection.
 ```{r}
-query.projected <- make.projection(query.object, ref=ref, human.ortho = T)
+query.projected <- make.projection(query.object, ref=ref)
 ```
 
 Plot global projection of human TIL data over the reference in UMAP space.
@@ -200,11 +201,12 @@ To better examine differences in TIL contexture between responders and non-respo
 which.types <- table(query.projected$functional.cluster)>20
 
 stateColors_func <- c("#edbe2a","#A58AFF","#53B400","#F8766D","#00B6EB","#d1cfcc","#FF0000","#87f6a5","#e812dd")
-states_all <- levels(factor(ref$functional.cluster))
+states_all <- levels(ref$functional.cluster)
 names(stateColors_func) <- states_all
 cols_use <- stateColors_func[names(which.types)][which.types]
 
 #Responder vs non Responder
+query.projected$functional.cluster <- factor(query.projected$functional.cluster, levels=states_all)
 query.list <- SplitObject(query.projected, split.by = "Response")
 
 norm.c <- table(query.list[["Non-responder"]]$functional.cluster)/sum(table(query.list[["Non-responder"]]$functional.cluster))
