@@ -1,8 +1,6 @@
 # ProjecTILs Case Studies
 
-We will be posting here interesting/instructive case studies of single-cell data analysis using [ProjecTILs](https://github.com/carmonalab/ProjecTILs)
-
-See the first case study below:
+We will be posting here interesting/instructive case studies of single-cell data analysis using [ProjecTILs](https://github.com/carmonalab/ProjecTILs):
 
 ## 1. [MC38 TILs with clonotype analysis](https://carmonalab.github.io/ProjecTILs_CaseStudies/Xiong19_TCR.html)
 
