@@ -68,6 +68,8 @@ remotes::install_github("carmonalab/ProjecTILs", ref="v1.0.0")
 library(Seurat)
 library(ProjecTILs)
 library(gridExtra)
+options(parallelly.makeNodePSOCK.setup_strategy = "sequential")
+
 ```
 
 # scRNA-seq data preparation
@@ -144,7 +146,7 @@ Run ProjecTILs projection algorithm - note that human genes will be converted to
 
 Also, non-T cells are automatically detected and removed before projection.
 ```{r}
-query.projected <- make.projection(query.object, ref=ref)
+query.projected <- make.projection(query.object, ref=ref, ncores = 2)
 ```
 
 Plot global projection of human TIL data over the reference in UMAP space.
@@ -249,7 +251,7 @@ Dataset original publication - [Sade-Feldman et al. (2018) Cell](https://pubmed.
 
 ProjecTILs case studies - [INDEX](https://carmonalab.github.io/ProjecTILs_CaseStudies/) - [Repository](https://github.com/carmonalab/ProjecTILs_CaseStudies)
 
-The ProjecTILs method [pre-print](https://doi.org/10.1101/2020.06.23.166546) and [code](https://github.com/carmonalab/ProjecTILs)
+The ProjecTILs method [Andreatta et. al (2021) Nat. Comm.](https://www.nature.com/articles/s41467-021-23324-4) and [code](https://github.com/carmonalab/ProjecTILs)
 
 
 # References

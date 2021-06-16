@@ -52,6 +52,7 @@ Sys.setenv(R_REMOTES_NO_ERRORS_FROM_WARNINGS="true")
 
 if (!requireNamespace("renv")) 
   install.packages("renv")
+
 library(renv)
 renv::restore()
 
@@ -63,6 +64,8 @@ library(ProjecTILs)
 library(gridExtra)
 library(ggplot2)
 library(plotly)
+
+options(parallelly.makeNodePSOCK.setup_strategy = "sequential")
 ```
 
 
@@ -158,7 +161,7 @@ ref <- load.reference.map()
 
 Project query data (with clonotype information stored as metadata) onto the TIL reference atlas
 ```{r}
-query.projected <- make.projection(querydata, ref=ref)
+query.projected <- make.projection(querydata, ref=ref, ncores = 2)
 ```
 
 Visualization of projected data.
@@ -278,5 +281,6 @@ Original publication - [Xiong et al. (2019) Cancer Immunol Res](https://doi.org/
 
 ProjecTILs case studies - [INDEX](https://carmonalab.github.io/ProjecTILs_CaseStudies/) - [Repository](https://github.com/carmonalab/ProjecTILs_CaseStudies)
 
+The ProjecTILs method [Andreatta et. al (2021) Nat. Comm.](https://www.nature.com/articles/s41467-021-23324-4) and [code](https://github.com/carmonalab/ProjecTILs)
 
 

@@ -64,6 +64,8 @@ library(ProjecTILs)
 library(ggplot2)
 library(reshape2)
 library(gridExtra)
+library(parallelly)
+options(parallelly.makeNodePSOCK.setup_strategy = "sequential")
 ```
 
 # Download and process single-cell data
@@ -260,4 +262,4 @@ Original publication - [Sandu et al. (2020) Cell Reports](https://www.sciencedir
 
 ProjecTILs case studies - [INDEX](https://carmonalab.github.io/ProjecTILs_CaseStudies/) - [Repository](https://github.com/carmonalab/ProjecTILs_CaseStudies)
 
-The ProjecTILs method [pre-print](https://doi.org/10.1101/2020.06.23.166546) and [code](https://github.com/carmonalab/ProjecTILs)
+The ProjecTILs method [Andreatta et. al (2021) Nat. Comm.](https://www.nature.com/articles/s41467-021-23324-4) and [code](https://github.com/carmonalab/ProjecTILs)
