@@ -172,9 +172,9 @@
       "RemoteHost": "api.github.com",
       "RemoteRepo": "ProjecTILs",
       "RemoteUsername": "carmonalab",
-      "RemoteRef": "v1.0.0",
-      "RemoteSha": "9ce01ea9b89e13ae599983d9670287b249aa62b3",
-      "Hash": "5b8f554731fa6f29166db5d7538df15a"
+      "RemoteRef": "HEAD",
+      "RemoteSha": "f97bba7ee5fa874d0c3f28d65eb73001a106bb98",
+      "Hash": "4ae9a3c1d5014108829fdeaac7887e5b"
     },
     "R.methodsS3": {
       "Package": "R.methodsS3",
@@ -303,10 +303,10 @@
     },
     "Seurat": {
       "Package": "Seurat",
-      "Version": "4.0.3",
+      "Version": "4.0.1",
       "Source": "Repository",
       "Repository": "CRAN",
-      "Hash": "7249f329b663f90bf99ffe06097ea3e7"
+      "Hash": "9daeb378fb2819f01425b155b90f083d"
     },
     "SeuratObject": {
       "Package": "SeuratObject",
