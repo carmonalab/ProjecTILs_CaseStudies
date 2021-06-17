@@ -1,5 +1,5 @@
 ---
-title: Exhausted T cells are associated with ICB responsiveness to breast cancer
+title: Exhausted CD8 T cells are associated with ICB responsiveness in breast cancer
 date: "`r Sys.Date()`"
 author: "M. Andreatta and S. Carmona"
 output:
@@ -167,11 +167,9 @@ query.projected <-  make.projection(data.split, ref, filter.cells=F, ncores=ncor
 ```
 
 See query cells for two selected the samples, projected onto the reference atlas
-````{r fig.height=4, fig.width=8, cache=FALSE}
-
-a <- plot.projection(ref, query=query.projected$BIOKEY_13) + ggtitle("Projection sample 1")
-b <- plot.projection(ref, query=query.projected$BIOKEY_10) + ggtitle("Projection sample 2")
-a | b
+````{r fig.height=6, fig.width=8, cache=FALSE}
+plot.projection(ref, query=query.projected$BIOKEY_13) + ggtitle("Projection sample 1")
+plot.projection(ref, query=query.projected$BIOKEY_10) + ggtitle("Projection sample 2")
 ```
 
 
@@ -202,7 +200,7 @@ plot.states.radar(ref, query=query.projected[1:5],min.cells = 30,
 
 
 Compare responders vs. non-responders (based on clonal expansion) - pre-therapy
-```{r fig.height=4, fig.width=8, cache=FALSE}
+```{r fig.height=6, fig.width=8, cache=FALSE}
 #Split by expansion (defined by authors)
 query.sub.byExp <- subset(query.projected.merged, subset=expansion %in% c("E","NE"))
 query.sub.byExp <- SplitObject(query.sub.byExp, split.by = "expansion")
@@ -222,7 +220,7 @@ c | d
 
 The analysis shows that ICB-responding tumors have a higher proportion of exhausted (Tex) and precursor-exhausted (Tpex) CD8 TILs, as well as a lower ratio of Treg/Tex.
 
-Calculate and visualize ***fold-changes*** of TIL composition in ***responders vs non-responders***
+Calculate and visualize **fold-changes** of TIL composition in **responders vs non-responders**
 ```{r fig.heigh=8, fig.width=5, fig.align="center",  cache=FALSE}
 
 which.types <- table(query.projected.merged$functional.cluster)>20 # disregard very small populations
@@ -249,16 +247,16 @@ ggplot(tb.m, aes(x=Cell_state, y=Fold_change, fill=Cell_state)) + geom_bar(stat=
 
 ```
 
-Tumors in ICB-responders have a ~4 fold-change increase in ***Tex*** and a ~2 fold-change increase in both ***Tpex*** and ***Tregs***.
+Tumors in ICB-responders have a ~4 fold-change increase in **Tex** and a ~2 fold-change increase in both **Tpex** and **Tregs**.
 
 # Discussion
 
 Our automated ProjecTILs analysis of this patient cohort indicate that compared to non-responders, early responders to PD-1 blockade (in terms of T cell expansion) have higher relative amounts of CD8 Tex and Tregs infiltrating their tumors, and a lower Treg to T(p)ex ratio, in agreement with previous studies (Daud et al. 2016; Thommen et al. 2018; Kumagai et al. 2020; Bassez et al. 2020). 
 This supports the notion that patients with a pre-existing tumor-specific CD8 T cell response in their tumors are more likely to respond to PD-1 blockade therapy. 
 
-Because tumoricidal CD8 Tex are derived from Tpex (Siddiqui et al. 2019; Miller et al. 2019), the presence of CD8 Tex seems to be a good proxy for the presence of smaller populations of quiescent Tpex, that have the ability to proliferate and differentiate into Tex cells following PD-1 blockade (Siddiqui et al. 2019; Miller et al. 2019). Indeed we observed a small population of Tpex-like cells, with increased levels R vs RN. Because there are very few Tpex their gene profile might be less robust than others, but compared to Tex they displayed up-regulation of Tpex-associated genes such as **XCL1** and down-regulation of terminal-exhaustion markers such as **HAVCR2** and **ENTPD1**. 
+Because tumoricidal CD8 Tex are derived from Tpex (Siddiqui et al. 2019; Miller et al. 2019), the presence of CD8 Tex seems to be a good proxy for the presence of smaller populations of quiescent Tpex, that have the ability to proliferate and differentiate into Tex cells following PD-1 blockade (Siddiqui et al. 2019; Miller et al. 2019). Indeed we observed a small population of Tpex-like cells, with increased levels R vs RN. Because there are very few Tpex their gene profile might be less robust than others, but compared to Tex they displayed up-regulation of Tpex-associated genes such as *XCL1* and down-regulation of terminal-exhaustion markers such as *HAVCR2* and *ENTPD1*. 
 
-In their study, Bassez et al. also observed increased levels in R vs NR of a population they referred to as exhausted CD4 T cells. Here we observed also a trend for increased levels of follicular-helper CD4 T cells, that resemble exhausted cells (expressing **e.g. TOX**, **PDCD1**, **ENTPD1**).
+In their study, Bassez et al. also observed increased levels in R vs NR of a population they referred to as exhausted CD4 T cells. Here we observed also a trend for increased levels of follicular-helper CD4 T cells, that resemble exhausted cells (expressing *e.g. TOX*, *PDCD1*, *ENTPD1*).
 
 # Further reading
 
