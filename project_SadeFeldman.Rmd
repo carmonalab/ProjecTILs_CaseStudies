@@ -49,7 +49,6 @@ In the study by [Sade-Feldman et al. (2018) Cell](https://pubmed.ncbi.nlm.nih.go
 
 The single-cell expression data [GSE120575](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE120575) consists of CD45+ single cells from 48 tumor biopsies of melanoma patients before or after checkpoint inhibitors treatment, sequenced using the Smart-seq2 protocol. Meta-data on response to therapy (Responder vs. Non-responder) is also available on the same GEO identifier.
 
-Here we use `ProjecTILs` >0.4.1, which implements ortholog gene conversion between human and mouse.
 
 # R Environment
 Check & load R packages
