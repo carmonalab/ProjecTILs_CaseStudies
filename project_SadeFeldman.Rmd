@@ -61,14 +61,13 @@ if (!requireNamespace("renv"))
 library(renv)
 renv::restore()
 
-#Load development version of ProjecTILs implementig human-mouse ortholog conversion
-remotes::install_github("carmonalab/ProjecTILs", ref="v1.0.0")
+#remotes::install_github("carmonalab/ProjecTILs", ref="v1.0.0")
 
 
 library(Seurat)
 library(ProjecTILs)
 library(gridExtra)
-options(parallelly.makeNodePSOCK.setup_strategy = "sequential")
+options(parallelly.makeNodePSOCK.setup_strategy = "sequential") # workaround issue https://github.com/HenrikBengtsson/future/issues/511
 
 ```
 
