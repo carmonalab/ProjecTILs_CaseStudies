@@ -14,3 +14,7 @@ Exploiting the ortholog mapping functionality of ProjecTILs, we project scRNA-se
 
 Apply ProjecTILs to investigate transcriptional profiles of CD8 T cells in chronic infection from **six different tissues.**
 
+
+## 4. [Exhausted CD8 T cells are associated with ICB responsiveness in breast cancer](https://carmonalab.github.io/ProjecTILs_CaseStudies/Bassez_BC.html)
+
+Re-analysis of the dataset by Bassez et al 2020 of breast cancer patients treated with anti-PD-1 therapy
