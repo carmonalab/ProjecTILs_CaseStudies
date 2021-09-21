@@ -18,3 +18,8 @@ Apply ProjecTILs to investigate transcriptional profiles of CD8 T cells in chron
 ## 4. [Exhausted CD8 T cells are associated with ICB responsiveness in breast cancer](https://carmonalab.github.io/ProjecTILs_CaseStudies/Bassez_BC.html)
 
 Re-analysis of the dataset by Bassez et al 2020 of breast cancer patients treated with anti-PD-1 therapy
+
+# 5. [Memory phenotypes of CD4+ T cells after acute infection](https://carmonalab.github.io/ProjecTILs_CaseStudies/Kunzli.html)
+
+A case study of projection of virus-specific CD4+ T cells in late acute infection.
+
