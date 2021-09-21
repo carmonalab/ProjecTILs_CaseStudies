@@ -106,7 +106,7 @@ if(!file.exists(cached.object)){
   therapy <- factor(meta$characteristics..therapy)
   
   ##Create Seurat object and add meta data
-  query.object <- CreateSeuratObject(counts = exp.mat, project = "SadeFeldman", min.cells = 10, min.features = 50)
+  query.object <- CreateSeuratObject(counts = exp.mat, project = "SadeFeldman", min.cells = 10)
   rm(exp.mat)
   query.object@meta.data$Sample <- samples
   query.object@meta.data$Time <- treat
