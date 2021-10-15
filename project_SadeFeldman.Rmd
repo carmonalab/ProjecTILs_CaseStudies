@@ -55,19 +55,12 @@ Check & load R packages
 ```{r message=F, warning=F, results=F, cache=F}
 Sys.setenv(R_REMOTES_NO_ERRORS_FROM_WARNINGS="true")
 
-if (!requireNamespace("renv")) 
-  install.packages("renv")
 library(renv)
 renv::restore()
 
-#remotes::install_github("carmonalab/ProjecTILs", ref="v1.0.0")
-
-
-library(Seurat)
+library(ggplot2)
 library(ProjecTILs)
 library(gridExtra)
-options(parallelly.makeNodePSOCK.setup_strategy = "sequential") # workaround issue https://github.com/HenrikBengtsson/future/issues/511
-
 ```
 
 # scRNA-seq data preparation
@@ -144,7 +137,7 @@ Run ProjecTILs projection algorithm - note that human genes will be converted to
 
 Also, non-T cells are automatically detected and removed before projection.
 ```{r}
-query.projected <- make.projection(query.object, ref=ref, ncores = 2)
+query.projected <- make.projection(query.object, ref=ref)
 ```
 
 Plot global projection of human TIL data over the reference in UMAP space.

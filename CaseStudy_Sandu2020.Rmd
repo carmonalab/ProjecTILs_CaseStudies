@@ -44,7 +44,7 @@ During chronic infection and cancer, prolonged antigen stimulation leads T cells
 
 In this case study, we applied **ProjecTILs** to re-analyze the single-cell data from Sandu et al. and study tissue-specific T cell heterogeneity in the context of a LCMV reference atlas. Raw data are available from the [European Nucleotide Archive](https://www.ebi.ac.uk/ena/browser/view/PRJEB36998); for convenience, we will start the analysis from the 10x gene-expression matrices available at [Sandu_CellReports2020.tar.gz](https://drive.switch.ch/index.php/s/Hv9wMuHZz4p3cyb/download), kindly provided by the authors.
 
-The reference atlas of virus-specific CD8 T cells used in this case study can be explored interactively at: [http://virustcellatlas.unil.ch/](http://virustcellatlas.unil.ch/)
+The reference atlas of virus-specific CD8 T cells used in this case study can be explored interactively through the SPICA portal at: [https://spica.unil.ch/refs/viral-CD8-T](https://spica.unil.ch/refs/viral-CD8-T)
 
 
 # R Environment
@@ -55,17 +55,10 @@ Sys.setenv(R_REMOTES_NO_ERRORS_FROM_WARNINGS="true")
 library(renv)
 renv::restore()
 
-#Load current version of ProjecTILs
-remotes::install_github("carmonalab/ProjecTILs", ref="v1.0.0")
-
-
-library(Seurat)
-library(ProjecTILs)
 library(ggplot2)
 library(reshape2)
 library(gridExtra)
-library(parallelly)
-options(parallelly.makeNodePSOCK.setup_strategy = "sequential")
+library(ProjecTILs)
 ```
 
 # Download and process single-cell data
@@ -99,7 +92,7 @@ table(query.merged$Tissue)
 # Basic quality checks
 
 Run some basic QC for ribosomal and mitochondrial gene content, and minimum number of genes and UMIs.
-```{r}
+```{r stats1}
 percent.ribo.dv <- PercentageFeatureSet(query.merged, pattern = "^Rp[ls]")
 percent.mito.dv <- PercentageFeatureSet(query.merged, pattern = "^mt-")
 
@@ -107,7 +100,7 @@ query.merged <- AddMetaData(query.merged, metadata = percent.ribo.dv, col.name =
 query.merged <- AddMetaData(query.merged, metadata = percent.mito.dv, col.name = "percent.mito")
 ```
 
-```{r}
+```{r stats2}
 Idents(query.merged) <- "Tissue"
 pl <- VlnPlot(query.merged , features = c("nFeature_RNA","nCount_RNA","percent.ribo","percent.mito"), 
               ncol = 2, pt.size=0.001, combine=FALSE, split.by = "Tissue")
@@ -122,8 +115,7 @@ plot(do.call("arrangeGrob", c(pll, ncol=2)))
 
 
 Filter outlier cells
-```{r}
-dim(query.merged)
+```{r stats.filter}
 query.merged <- subset(query.merged, subset = nFeature_RNA>500 & nFeature_RNA<4000 & 
                        nCount_RNA>1000 & nCount_RNA<15000 &
                        percent.ribo < 50 & percent.mito < 5)
@@ -135,7 +127,7 @@ dim(query.merged)
 Download the CD8 T cell atlas for infection from figshare: [LCMV reference atlas](https://ndownloader.figshare.com/files/23166794)
 Save the *ref_LCMV_Atlas_mouse_v1.rds* object in your working directory, and the load it into memory to inspect it:
 
-```{r}
+```{r load.reference}
 ref <- load.reference.map("ref_LCMV_Atlas_mouse_v1.rds")
 
 # reproduce cluster colors
@@ -158,8 +150,6 @@ An interactive version of the reference atlas can also be explored at [http://vi
 ```{r message=F, warning=F, results=F}
 #For example, to allow 3GB of RAM, and run on 6 computing cores:
 mem_in_mb <- 3000
-options(future.globals.maxSize= mem_in_mb*1024^2)
-
 ncores <- 6
 ```
 
@@ -168,7 +158,7 @@ Now we have loaded the query samples in a Seurat object, and an atlas object to 
 ```{r message=F, warning=F, results=F}
 querydata <- SplitObject(query.merged, split.by = "Tissue")
 #For serial processing, just set ncores=1
-query.projected <- make.projection(querydata, ref=ref, ncores=ncores)
+query.projected <- make.projection(querydata, ref=ref, ncores=ncores, future.maxSize=mem_in_mb)
 ```
 
 ## Tissue-specific T cell state composition

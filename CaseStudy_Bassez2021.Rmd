@@ -50,16 +50,13 @@ To compare the T cell subtype composition between responders and non-responders 
 # R Environment
 
 ```{r, message=FALSE, warning=F, results=FALSE}
-#renv::activate()
+library(renv)
 renv::restore()
-#remotes::install_github("carmonalab/ProjecTILs", ref="1.0.0")
-#remotes::install_version("Seurat", version = "4.0.1")
-library(ProjecTILs)
+
 library(patchwork)
 library(ggplot2)
 library(reshape2)
-library(parallelly)
-options(parallelly.makeNodePSOCK.setup_strategy = "sequential")  # workaround to issue https://github.com/HenrikBengtsson/future/issues/511
+library(ProjecTILs)
 ```
 
 # scRNA-seq data preparation
@@ -162,9 +159,10 @@ query.projected <-  make.projection(data.split, ref, filter.cells=F, ncores=ncor
 ```
 
 See query cells for two selected the samples, projected onto the reference atlas
-````{r fig.height=3.5}
-plot.projection(ref, query=query.projected$BIOKEY_13) + ggtitle("Projection sample 1")
-plot.projection(ref, query=query.projected$BIOKEY_10) + ggtitle("Projection sample 2")
+```{r fig.height=4, fig.width=11}
+a <- plot.projection(ref, query=query.projected$BIOKEY_13, linesize = 0.5, pointsize = 0.2) + ggtitle("Projection sample 1")
+b <- plot.projection(ref, query=query.projected$BIOKEY_10, linesize = 0.5, pointsize = 0.2) + ggtitle("Projection sample 2")
+a | b
 ```
 
 
@@ -183,19 +181,20 @@ A query dataset might contain a subtype that is not well represented in the atla
 In this case, radar/spider profiles look fine, meaning that in general terms, current reference atlas is capturing the main features of the query data:
 
 ```{r fig.height=8, fig.width=12, cache=FALSE}
-plot.states.radar(ref, query=query.projected.merged,min.cells = 30, 
-                  genes4radar = c("Foxp3","Cd4","Cd8a","Tcf7","Ccr7","Sell","Il7r","Gzmb","Gzmk","Pdcd1","Lag3","Havcr2","Tox","Entpd1","Cxcr3","Cxcr5","Ifng","Cd200","Xcl1","Itgae"))#,"Cxcl13",
+genes <- c("Foxp3","Cd4","Cd8a","Tcf7","Ccr7","Sell","Il7r",
+           "Gzmb","Gzmk","Pdcd1","Lag3","Havcr2","Tox","Entpd1",
+           "Cxcr3","Cxcr5","Ifng","Cd200","Xcl1","Itgae")
+plot.states.radar(ref, query=query.projected.merged,min.cells = 30, genes4radar = genes)
 ```
 
 We can also verify that gene profiles are consistent across samples/patients, i.e. batch effects have been mitigated 
 ```{r fig.height=8, fig.width=12, cache=FALSE}
-plot.states.radar(ref, query=query.projected[1:5],min.cells = 30, 
-                  genes4radar = c("Foxp3","Cd4","Cd8a","Tcf7","Ccr7","Sell","Il7r","Gzmb","Gzmk","Pdcd1","Lag3","Havcr2","Tox","Entpd1","Cxcr3","Ifng","Cd200","Xcl1","Itgae"))
+plot.states.radar(ref, query=query.projected[1:5],min.cells = 30, genes4radar = genes)
 ```
 
 
 Compare responders vs. non-responders (based on clonal expansion) - pre-therapy
-```{r fig.height=3.5, cache=FALSE}
+```{r fig.height=4, fig.width=11, cache=FALSE}
 #Split by expansion (defined by authors)
 query.sub.byExp <- subset(query.projected.merged, subset=expansion %in% c("E","NE"))
 query.sub.byExp <- SplitObject(query.sub.byExp, split.by = "expansion")
@@ -206,9 +205,10 @@ n_ne <- length(table(query.sub.byExp$NE$patient_id))
 a <- plot.projection(ref, query=query.sub.byExp$E, linesize = 0.5, pointsize = 0.2) + ggtitle(paste0("Responders; n=",n_e))
 b <- plot.projection(ref, query=query.sub.byExp$NE, linesize = 0.5, pointsize = 0.2)  + ggtitle(paste0("Non-Responders; n=",n_ne))
 
-a
-b
+a | b
+```
 
+```{r fig.height=3.5, cache=FALSE}
 c <- plot.statepred.composition(ref, query.sub.byExp$E, metric = "percent") + ylim(0,30) + ggtitle(paste0("Responders; n=",n_e))
 d <- plot.statepred.composition(ref, query.sub.byExp$NE, metric = "percent") + ylim(0,30)  + ggtitle(paste0("Non-Responders; n=",n_ne))
 c | d

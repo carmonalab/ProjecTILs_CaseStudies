@@ -1,0 +1,231 @@
+---
+title: CD4+ T cells during and after acute infection
+date: "`r Sys.Date()`"
+author: "M. Andreatta and S. Carmona"
+output:
+  rmdformats::readthedown:
+    self-contained: true
+    highlight: haddock
+    thumbnails: false
+    css: styles.css
+knit: (function(input_file, encoding) {
+  out_dir <- 'docs';
+  rmarkdown::render(input_file, encoding=encoding,
+  output_file=file.path(dirname(input_file), out_dir, 'Bassez_BC.html'))})
+---
+
+```{r setup, echo=FALSE}
+#install.packages("rmdformats")
+#Template markdown setup
+library(knitr)
+library(rmdformats)
+library(formatR)
+
+## Global options
+options(max.print="75")
+opts_chunk$set(echo=TRUE,
+	             cache=TRUE,
+               cache.lazy=FALSE,
+               prompt=FALSE,
+               tidy=TRUE,
+               comment=NA,
+               message=FALSE,
+               warning=FALSE,
+               dev='png')
+opts_knit$set(width=75)
+
+```
+
+# Background
+
+
+
+# R Environment
+
+```{r, message=FALSE, warning=F, results=FALSE}
+#renv::activate()
+renv::restore()
+#remotes::install_github("carmonalab/ProjecTILs", ref="1.0.0")
+#remotes::install_version("Seurat", version = "4.0.1")
+library(ProjecTILs)
+library(patchwork)
+library(ggplot2)
+library(reshape2)
+library(patchwork)
+```
+
+# scRNA-seq data preparation
+
+```{r}
+library(GEOquery)
+
+datadir <- "input/Ciucci"
+
+geo_day7 <- "GSM3423797"
+gse <- getGEO(geo_day7)
+system(paste0("mkdir -p ", datadir))
+getGEOSuppFiles(geo_day7, baseDir = datadir)
+
+mv()
+
+geo_day30 <- "GSM3423799"
+gse <- getGEO(geo_day30)
+system(paste0("mkdir -p ", datadir))
+getGEOSuppFiles(geo_day30, baseDir = datadir)
+```
+
+
+Create Seurat objects
+```{r}
+query.list <- list()
+
+query.list$day7 <- Read10X(sprintf("%s/%s", datadir, geo_day7))
+
+
+
+
+query.list[["protector"]] <- CreateSeuratObject(counts = exp_mat.1, min.cells = 3, min.features = 50)
+query.list[["protector"]]$Sample <- substring(colnames(query.list[["protector"]]),18)
+query.list[["protector"]]$condition <- "protector"
+table(query.list[["protector"]]$Sample)
+
+query.list[["control"]] <- CreateSeuratObject(counts = exp_mat.2, min.cells = 3, min.features = 50)
+query.list[["control"]]$Sample <- substring(colnames(query.list[["control"]]),18)
+query.list[["control"]]$condition <- "control"
+table(query.list[["control"]]$Sample)
+
+query.merged <- merge(query.list[[1]], query.list[[2]])
+
+#Downsample to 1000 cells per sample
+set.seed(1234)
+Idents(query.merged) <- "Sample"
+query.merged <- subset(query.merged, cells=WhichCells(query.merged,downsample = 1000))
+table(query.merged$Sample)
+
+
+```
+
+#Load reference atlas
+```{r}
+#Download the reference atlas
+if (!file.exists("ref_LCMV_CD4_mouse_release_v1.rds")) { 
+  dataUrl <- "https://figshare.com/ndownloader/files/30716960"
+  download.file(dataUrl, "ref_LCMV_CD4_mouse_release_v1.rds")
+}
+
+ref <- load.reference.map("ref_LCMV_CD4_mouse_release_v1.rds")
+DimPlot(ref, cols = ref@misc$atlas.palette)
+```
+
+Project data by sample
+```{r}
+query.by.sample <- SplitObject(query.merged, split.by = "Sample")
+
+query.projected <- make.projection(query.by.sample, ref=ref)  
+```
+
+```{r fig.width=6, fig.height=3}
+plots <- list()
+palette <- ref@misc$atlas.palette
+
+for (i in seq_along(query.projected)) {
+  sample <- names(query.projected)[i]
+  cond <- unique(query.projected[[i]]$condition)
+  
+  query.projected[[i]] <- cellstate.predict(ref=ref, query=query.projected[[i]], reduction = "umap", ndim=2)
+  
+  
+  plots[[i]] <- plot.projection(ref, query.projected[[i]], linesize=0.5, pointsize=0.5, cols=palette) + 
+    ggtitle(paste(sample,cond)) + NoLegend()  + 
+    theme(legend.position = "none", panel.grid = element_blank(),
+        axis.title = element_blank(),
+        axis.text = element_blank(),
+        axis.ticks = element_blank())
+  
+    plots[[i+3]] <- plot.statepred.composition(ref, query=query.projected[[i]], cols=palette, metric="Percent") + 
+      ggtitle(" ") + ylim(0,50)  + theme_bw() + 
+      theme(panel.grid = element_blank(),
+        axis.text.x = element_blank(),
+        axis.ticks.x =  element_blank())
+}
+
+g <- wrap_plots(plots, ncol=3)
+plot(g)
+
+```
+
+
+```{r fig.height=5}
+features <-c("Ifng","Ccl5","Gzmb","Cxcr6","Selplg","Id2","Tbx21",
+             "Ly6c2","Cxcr5","Tox","Tox2","Izumo1r","Pdcd1","Tnfsf8",
+             "Ccr7","Il7r","Tcf7","Eomes","Ifit1")
+
+p <- plot.states.radar(ref, query=query.projected, 
+                  min.cells=30, genes4radar = features)
+
+```
+
+
+Pool protector samples
+```{r}
+query.bycondition <- list()
+
+query.bycondition[['Control']] <- query.projected$Spleen_0
+query.bycondition[['Protector']] <- ProjecTILs:::merge.Seurat.embeddings(query.projected$Spleen_1, query.projected$Spleen_2)
+
+query.bycondition
+```
+
+Projection plots and composition plots
+```{r fig.width=4, fig.height=3}
+plots <- list()
+
+for (i in seq_along(query.bycondition)) {
+  cond <- names(query.bycondition)[i]
+
+  plots[[i]] <- plot.projection(ref, query.bycondition[[i]], linesize=0.5, pointsize=0.5, cols=palette) + 
+    ggtitle(cond) + NoLegend() 
+  
+  query.bycondition[[i]] <- cellstate.predict(ref=ref, query=query.bycondition[[i]], reduction = "umap", ndim=2)
+  
+  plots[[i+2]] <- plot.statepred.composition(ref, query=query.bycondition[[i]], cols=palette, metric="Percent") + 
+    ggtitle(" ") + ylim(0,50)  + theme_bw() + 
+        theme(panel.grid = element_blank(),
+        axis.text.x = element_blank(),
+        axis.ticks.x =  element_blank())
+}
+
+g <- wrap_plots(plots, ncol=2)
+g
+```
+
+Fold-change
+```{r}
+query.merged <- ProjecTILs:::merge.Seurat.embeddings(query.bycondition$Control, query.bycondition$Protector)
+table(query.merged$functional.cluster)
+
+which.types <- table(query.merged$functional.cluster) > 50
+
+stateColors_func <- ref@misc$atlas.palette
+states_all <- names(stateColors_func)
+
+cols_use <- stateColors_func[names(which.types)][which.types]
+
+tab1_use <- table(query.bycondition$Control$functional.cluster)[which.types]
+tab2_use <- table(query.bycondition$Protector$functional.cluster)[which.types]
+
+norm.c <- tab1_use/sum(tab1_use)
+norm.q <- tab2_use/sum(tab2_use)
+
+foldchange <- norm.q/norm.c
+foldchange <- sort(foldchange, decreasing = T)
+
+tb.m <- melt(foldchange)
+colnames(tb.m) <- c("Cell_state", "Fold_change")
+pll <- list()
+ggplot(tb.m, aes(x = Cell_state, y = Fold_change, fill = Cell_state)) + geom_bar(stat = "identity") + theme_bw() +
+    scale_fill_manual(values = cols_use) + geom_hline(yintercept = 1) + scale_y_continuous(trans = "log2") +
+    theme(axis.text.x = element_blank(), legend.position = "left") + ggtitle("Tfh protector vs. Control") 
+
+```
+

@@ -50,22 +50,14 @@ Check & load R packages
 ```{r message=F, warning=F, results=F}
 Sys.setenv(R_REMOTES_NO_ERRORS_FROM_WARNINGS="true")
 
-if (!requireNamespace("renv")) 
-  install.packages("renv")
-
 library(renv)
 renv::restore()
 
-#Load development version of ProjecTILs
-remotes::install_github("carmonalab/ProjecTILs", ref = "v1.0.0")
-
-library(scRepertoire)
-library(ProjecTILs)
 library(gridExtra)
 library(ggplot2)
 library(plotly)
-
-options(parallelly.makeNodePSOCK.setup_strategy = "sequential")
+library(ProjecTILs)
+library(scRepertoire)
 ```
 
 
