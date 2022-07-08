@@ -1,0 +1,305 @@
+---
+title: Detecting novel/unrepresented cell states
+date: "`r Sys.Date()`"
+author: "M. Andreatta, T. Ciucci, S. Carmona"
+output:
+  rmdformats::readthedown:
+    self-contained: true
+    highlight: haddock
+    thumbnails: false
+    css: styles.css
+knit: (function(input_file, encoding) {
+  out_dir <- 'docs';
+  rmarkdown::render(input_file, encoding=encoding,
+  output_file=file.path(dirname(input_file), out_dir, 'novelstate.html'))})
+---
+
+```{r setup, echo=FALSE}
+library(knitr)
+library(rmdformats)
+library(formatR)
+
+## Global options
+options(max.print="75")
+opts_chunk$set(echo=TRUE,
+	             cache=TRUE,
+               cache.lazy=FALSE,
+               prompt=FALSE,
+               tidy=TRUE,
+               comment=NA,
+               message=FALSE,
+               warning=FALSE,
+               dev='png')
+opts_knit$set(width=75)
+
+```
+
+# Background
+
+This case study illustrates the feasibility of reference based analysis of single-cell data to interpret cell states beyond those represented in the reference map. Additionally, we will show how, upon encountering novel cell states, a reference map can be updated to incorporate the new diversity.
+
+For this example, we will use a dataset of CD4+ T cells responding to MC38 tumors (all T cells are specific for the GP66 epitope), both from the tumor (TILs) and from lymphnodes (LN) of two mice. The data are available at [GEO - GSE200635](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE200635). We will project these T cells on a reference map of LCMV virus-specific CD4+ T cells, and determine the degree of correspondence of the T cells from the two disease models.
+
+# R Environment
+
+To install the ProjecTILs package for reference-based analysis of scRNA-seq data, please refer to the instructions on the [ProjecTILs repository](https://github.com/carmonalab/ProjecTILs) 
+
+```{r, message=FALSE, warning=F, results=FALSE}
+library(renv)
+renv::restore()
+
+library(ggplot2)
+library(reshape2)
+library(patchwork)
+library(ProjecTILs)
+```
+
+# scRNA-seq data preparation
+
+We can download the single-cell data directly from Gene Expression Omnibus (GEO).
+```{r, message=FALSE, warning=F, results=FALSE}
+library(GEOquery)
+geo_acc <- "GSE200635"
+datadir <- "input/MC38_GP66"
+geodir <- sprintf("%s/%s", datadir, geo_acc)
+```
+
+```{r, message=FALSE, warning=F, results=FALSE, eval=F}
+gse <- getGEO(geo_acc)
+
+system(paste0("mkdir -p ", datadir))
+getGEOSuppFiles(geo_acc, baseDir = datadir)
+
+system(sprintf("tar -xvf %s/GSE200635_RAW.tar -C %s", geodir, geodir))
+
+#rename files to be understood by Seurat
+system(sprintf("mv %s/GSM6040471_matrix.mtx.gz %s/matrix.mtx.gz", geodir, geodir))
+system(sprintf("mv %s/GSM6040471_barcodes.tsv.gz %s/barcodes.tsv.gz", geodir, geodir))
+system(sprintf("mv %s/GSM6040471_features.tsv.gz %s/features.tsv.gz", geodir, geodir))
+```
+
+Read in 10x data and store as a Seurat object
+```{r}
+obj <- Read10X(geodir)
+```
+
+These data have been multiplexed - i.e. different samples were tagged with antibodies and then run in a single sequencing run. The following code de-multiplexes the data to reassign cells to their sample of origin. It uses the `HTODemux` function from Seurat, described in detail [in this tutorial](https://satijalab.org/seurat/articles/hashing_vignette.html).
+
+```{r fig.height=4, fig.width=7}
+ID <- "MC38GP66"
+
+#Gene expression
+data <- CreateSeuratObject(obj[["Gene Expression"]], project="MC38_GP66")
+
+#Antibody capture
+valid.hashtags <- c(1,2,3,4,5)
+names <- c("LN_1", "LN_2", "TIL_1", "TIL_2", "CD44_2") 
+
+abc <- obj[["Antibody Capture"]][valid.hashtags,]
+
+rownames(abc) <- names
+data[["hash"]] <- CreateAssayObject(counts = abc)
+
+data <- NormalizeData(data, assay = "hash", normalization.method = "CLR")
+data <- HTODemux(data, assay = "hash", positive.quantile = 0.995, kfunc="kmeans")
+data$Sample <- data$hash.ID
+data <- RenameCells(object = data, add.cell.id = ID)
+data$barcode <- rownames(data@meta.data)
+
+Idents(data) <- "hash_maxID"
+RidgePlot(data, assay = "hash", features = rownames(data[["hash"]]), ncol = 3)
+
+table(data$Sample)
+```
+
+Remove cells that could not be demultiplexed (doublets and untagged cells).
+
+```{r}
+which.samples <- c("LN-1","LN-2","TIL-1","TIL-2")
+data <- subset(data, subset = Sample %in% which.samples)
+
+data$Sample <- factor(data$Sample, levels = which.samples)
+data$Tissue <- "LN"
+data$Tissue[data$Sample %in% c("TIL-1","TIL-2")] = "TIL"
+
+data$subject <- factor(data$Sample, levels=c("LN-1","LN-2","TIL-1","TIL-2"),labels=c("m1","m2","m1","m2"))
+
+table(data$Tissue)
+```
+
+One may want to perform standard quality checks (e.g. number of UMIs, percentage of mitochondrial genes etc.), but for the sake of simplicity we will keep all cells in this case study.
+
+# Load reference atlas
+
+The CD4+ T cell atlas is described in [Andreatta et al. (2021)](https://www.biorxiv.org/content/10.1101/2021.09.20.458613v1), and can be downloaded from Figshare at: [doi.org/10.6084/m9.figshare.16592693.v2](https://doi.org/10.6084/m9.figshare.16592693.v2)
+
+You can also use the commands below to download the atlas directly within R, and load it into memory.
+
+```{r fig.height=3.5, fig.width=5}
+#Download the reference atlas
+cd4.atlas.file <- "ref_LCMV_CD4_mouse_release_v1.rds"
+if (!file.exists(cd4.atlas.file)) { 
+  dataUrl <- "https://figshare.com/ndownloader/files/31057081"
+  download.file(dataUrl, cd4.atlas.file)
+}
+ref <- load.reference.map(cd4.atlas.file)
+
+palette <- ref@misc$atlas.palette
+DimPlot(ref, cols = palette) 
+```
+
+# Project tumor-specific data into viral atlas
+```{r}
+#Project data by subject (two mice separately)
+query.list <- SplitObject(data, split.by = "subject")
+
+query.projected <- make.projection(query.list, ref=ref, anchor_coverage =  0.3)
+```
+
+Now see projection on individual samples
+```{r}
+query.projected.merged <- Reduce(f=merge.Seurat.embeddings, x=query.projected) 
+
+query.projected <- SplitObject(query.projected.merged, split.by = "Tissue")
+```
+
+
+```{r fig.width=9, fig.height=6}
+library(patchwork)
+
+plots <- list()
+lgt <- length(query.projected)
+
+for (i in seq_along(query.projected)) {
+  sample <- names(query.projected)[i]
+  plots[[i]] <- plot.projection(ref, query.projected[[i]], linesize=0.5, pointsize=0.5, cols=palette) + 
+    ggtitle(sample) + NoLegend() + theme(axis.ticks = element_blank(), axis.text = element_blank())
+  
+  query.projected[[i]] <- cellstate.predict(ref=ref, query=query.projected[[i]], reduction = "umap")
+  
+  plots[[i+lgt]] <- plot.statepred.composition(ref, query=query.projected[[i]], cols=palette, metric="Percent") + 
+    theme_bw() + theme(axis.text.x = element_blank(), legend.position = "none") + ylim(0,70) + ggtitle(" ") 
+}
+
+wrap_plots(plots, ncol=2)
+```
+While T cells from the lymphnode are mostly of the follicular helper lineage, tumor-infiltrating T cells are predicted to be mostly Tregs and T helpers. We can inspect a panel of markers genes for these subtype, to verify how well they match the reference profiles.
+
+# Diagnostics of query-reference fit
+
+Radar plots for a panel of marker genes are a good initial indication of how well the query can be matched to the reference.
+
+```{r fig.height=9, fig.width=13}
+genes4radar <- c("Cxcr6","Id2","Tbx21","Ccl5","Ly6c2","Cxcr5","Tox","Izumo1r","Tnfsf8", "Tcf7","Foxp3","Ctla4")
+
+
+rr.list <- plot.states.radar(ref=ref, query=query.projected, genes4radar = genes4radar,
+                             min.cells = 100, return.as.list = T)
+rr <- wrap_plots(rr.list)
+rr
+```
+We can observe that TILs projected in the Th1 effector cluster lack some key markers for Th1 (Ccl5, Ly6c2). This is a first hint that T helpers from the tumor may be different from Th1 cells in a viral context.
+
+```{r}
+compute_silhouette(ref, query=query.projected$TIL, normalize.scores = T)
+compute_silhouette(ref, query=query.projected$LN, normalize.scores = T)
+```
+
+Indeed, tumor-specific T cells assigned to Th1 cluster have a much lower silhouette coefficient than other subtypes, suggesting that they fit poorly with the reference Th1 effectors.
+
+
+What distinguishes these Th-like TILs from the reference Th1 effectors? The `find.discriminant.genes()` function can help you calculate differentially expressed genes between cells of a specific subset.
+
+```{r fig.height=4}
+library(EnhancedVolcano)
+min.pct <- 0.1
+min.diff.pct <- 0.3
+logfc.threshold <- 2
+
+
+genes.use.DE <- rownames(ref)
+genes.use.DE <- grep("^Gm|Rik$",genes.use.DE,value=T,invert = T)
+#Based on Ensembl 'biotype' classifications in mouse, genes starting with 'Gm-' or ending with 'Rik' include protein-coding RNAs, long non-coding RNAs, and antisense transcripts. Genes with the 'Gm' prefix seem to be enriched for pseudogenes.
+
+
+tab <- find.discriminant.genes(ref=ref, query=query.projected$TIL, state="Th1_Effector",
+                               min.pct=min.pct, min.diff.pct=min.diff.pct,
+                               logfc.threshold=logfc.threshold, which.genes=genes.use.DE)
+
+head(tab)
+
+a <- EnhancedVolcano(tab, lab = rownames(tab), x = 'avg_log2FC', y = 'p_val',
+                     FCcutoff=1, pCutoff = 10^(-10), title="Th1 effector cells",
+                     subtitle = "TILs 1 vs. LCMV spleen",
+                     drawConnectors = T, max.overlaps = 20)
+
+a
+```
+Interestingly, several markers associated with Th2 cells are overexpressed in tumoral T helpers, e.g. Ccl1, Ccr8 and Igfbp7, while Th1 markers are downregulated (Ccl5, Ly6c2). This may indicate that helper T cells in the tumor have phenotype more similar to Th2 rather than the Th1 lineage.
+
+
+# Recalculate map with novel state
+
+We can recaulculate the low dimensional representation of the data to also account for the projected data. In this way, any novelty brought by the new dataset can contribute in determining the low dimensional space.
+
+```{r fig.height=3.5, fig.width=5}
+set.seed(1234)
+merged <- recalculate.embeddings(ref, projected = query.projected$TIL, umap.method = "umap")
+
+Idents(merged) <- "functional.cluster"
+plot.projection(ref=merged, query=subset(merged, subset=ref_or_query=="query"), cols = palette, linesize=0.5) + 
+  theme(aspect.ratio = 1) + ggtitle("Projected cells in recalculated reference space")
+```
+Where do the TILs end up in the recalculated embedding?
+
+```{r fig.height=3.5, fig.width=8}
+sub <- merged
+sub$functional.cluster[sub$ref_or_query == "query"] = NA
+a <- DimPlot(sub, reduction = "umap", cols=palette, group.by = "functional.cluster") + theme(aspect.ratio=1) + 
+  theme(axis.ticks = element_blank(), axis.text = element_blank()) + NoLegend() + ggtitle("Reference")
+
+sub <- merged
+sub$functional.cluster[sub$ref_or_query == "ref"] = NA
+b <- DimPlot(sub, reduction = "umap", cols=palette, group.by = "functional.cluster") + theme(aspect.ratio=1) + 
+  theme(axis.ticks = element_blank(), axis.text = element_blank()) + ggtitle("Projected")
+
+a | b
+```
+
+Tregs of the query were much more abundant than those of the reference, but they all occupy the same area. Tumor-specific T helpers instead appear to form a separate cluster in the recalculated map.
+
+```{r fig.height=3.5, fig.width=5}
+DefaultAssay(merged) <- "integrated"
+
+ndim <- ncol(ref@misc$umap_object$data)
+merged <- FindNeighbors(merged, reduction = "pca", dims = 1:ndim)
+merged <- FindClusters(merged, resolution = 0.8)
+DimPlot(merged, reduction = "umap", group.by = "seurat_clusters", label = T) + theme(aspect.ratio=1) + theme(axis.ticks = element_blank(), axis.text = element_blank()) + NoLegend()
+```
+We can now annotate the new cluster of Th-like cells from the tumor, as well as the combined cluster of Tregs from the reference and the tumor. This constitutes an updated reference that you can use directly to project and interpret new data!
+
+```{r fig.height=3.5, fig.width=5}
+merged$functional.cluster[merged$seurat_clusters == 9] <- "Treg"
+merged$functional.cluster[merged$seurat_clusters == 12] <- "tumoralTh"
+
+palette2 <- c(palette, tumoralTh="brown")
+merged@misc$atlas.palette <- palette2
+
+merged$functional.cluster.new <- merged$functional.cluster
+merged$functional.cluster.new[merged$seurat_clusters == "tumoralTh"] <- merged$seurat_clusters[merged$seurat_clusters  == "tumoralTh"]
+
+DimPlot(merged, reduction = "umap", group.by = "functional.cluster.new",cols = palette2) + theme(aspect.ratio=1) + theme(axis.ticks = element_blank(), axis.text = element_blank()) + ggtitle("Updated reference map")
+
+```
+# Further reading
+
+Dataset available on Gene Expression Omnibus -  [GSE200635](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE200635)
+
+ProjecTILs case studies - [INDEX](https://carmonalab.github.io/ProjecTILs_CaseStudies/) - [Repository](https://github.com/carmonalab/ProjecTILs_CaseStudies)
+
+ProjecTILs method [Andreatta et. al (2021) Nat. Comm.](https://www.nature.com/articles/s41467-021-23324-4) and [code](https://github.com/carmonalab/ProjecTILs)
+
+# References
+
+* M. Andreatta, Z. Sherman, A. Tjitropranoto, M. C. Kelly, T. Ciucci, S. J. Carmona **"A single-cell reference atlas delineates CD4+ T cell subtype-specific adaptation during acute and chronic viral infections"** bioRxiv 2021.09.20.458613; doi: https://doi.org/10.1101/2021.09.20.458613 
+
