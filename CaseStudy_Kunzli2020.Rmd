@@ -158,7 +158,7 @@ for (i in seq_along(query.projected)) {
   query.projected[[i]] <- cellstate.predict(ref=ref, query=query.projected[[i]], reduction = "umap", ndim=2)
   
   
-  plots[[i]] <- plot.projection(ref, query.projected[[i]], linesize=0.5, pointsize=0.5, cols=palette) + 
+  plots[[i]] <- plot.projection(ref, query.projected[[i]], linesize=0.5, pointsize=0.5) + 
     ggtitle(paste(sample,cond)) + NoLegend()  + 
     theme(legend.position = "none", panel.grid = element_blank(),
         axis.title = element_blank(),
@@ -203,7 +203,7 @@ plots <- list()
 for (i in seq_along(query.bycondition)) {
   cond <- names(query.bycondition)[i]
 
-  plots[[i]] <- plot.projection(ref, query.bycondition[[i]], linesize=0.5, pointsize=0.5, cols=palette) + 
+  plots[[i]] <- plot.projection(ref, query.bycondition[[i]], linesize=0.5, pointsize=0.5) + 
     ggtitle(cond) + NoLegend() 
   
   query.bycondition[[i]] <- cellstate.predict(ref=ref, query=query.bycondition[[i]], reduction = "umap", ndim=2)

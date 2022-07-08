@@ -36,13 +36,13 @@ opts_knit$set(width=75)
 
 # Background
 
-This case study illustrates the feasibility of reference based analysis of single-cell data to interpret cell states beyond those represented in the reference map. Additionally, we will show how, upon encountering novel cell states, a reference map can be updated to incorporate the new diversity.
+This case study illustrates how you can apply reference-based analysis of single-cell data to interpret cell states beyond those represented in the reference map. Upon encountering novel cell states, a reference map can also be updated to incorporate the new cellular diversity.
 
 For this example, we will use a dataset of CD4+ T cells responding to MC38 tumors (all T cells are specific for the GP66 epitope), both from the tumor (TILs) and from lymphnodes (LN) of two mice. The data are available at [GEO - GSE200635](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE200635). We will project these T cells on a reference map of LCMV virus-specific CD4+ T cells, and determine the degree of correspondence of the T cells from the two disease models.
 
-# R Environment
+To install the ProjecTILs package for reference-based analysis of scRNA-seq data, please refer to the instructions on the [ProjecTILs repository](https://github.com/carmonalab/ProjecTILs). 
 
-To install the ProjecTILs package for reference-based analysis of scRNA-seq data, please refer to the instructions on the [ProjecTILs repository](https://github.com/carmonalab/ProjecTILs) 
+# R Environment
 
 ```{r, message=FALSE, warning=F, results=FALSE}
 library(renv)
@@ -83,9 +83,9 @@ Read in 10x data and store as a Seurat object
 obj <- Read10X(geodir)
 ```
 
-These data have been multiplexed - i.e. different samples were tagged with antibodies and then run in a single sequencing run. The following code de-multiplexes the data to reassign cells to their sample of origin. It uses the `HTODemux` function from Seurat, described in detail [in this tutorial](https://satijalab.org/seurat/articles/hashing_vignette.html).
+These data have been multiplexed - i.e. different samples were tagged with antibodies and then loaded in a single sequencing run. The following code de-multiplexes the data to reassign cells to their sample of origin. It uses the `HTODemux` function from Seurat, described in detail [in this tutorial](https://satijalab.org/seurat/articles/hashing_vignette.html).
 
-```{r fig.height=4, fig.width=7}
+```{r fig.height=5, fig.width=8}
 ID <- "MC38GP66"
 
 #Gene expression
@@ -127,7 +127,7 @@ data$subject <- factor(data$Sample, levels=c("LN-1","LN-2","TIL-1","TIL-2"),labe
 table(data$Tissue)
 ```
 
-One may want to perform standard quality checks (e.g. number of UMIs, percentage of mitochondrial genes etc.), but for the sake of simplicity we will keep all cells in this case study.
+One may want to additionally perform standard quality checks (e.g. number of UMIs, percentage of mitochondrial genes etc.), but for the sake of simplicity we will keep all cells in this case study.
 
 # Load reference atlas
 
@@ -164,7 +164,7 @@ query.projected <- SplitObject(query.projected.merged, split.by = "Tissue")
 ```
 
 
-```{r fig.width=9, fig.height=6}
+```{r fig.width=8, fig.height=8}
 library(patchwork)
 
 plots <- list()
@@ -172,7 +172,7 @@ lgt <- length(query.projected)
 
 for (i in seq_along(query.projected)) {
   sample <- names(query.projected)[i]
-  plots[[i]] <- plot.projection(ref, query.projected[[i]], linesize=0.5, pointsize=0.5, cols=palette) + 
+  plots[[i]] <- plot.projection(ref, query.projected[[i]], linesize=0.5, pointsize=0.5) + 
     ggtitle(sample) + NoLegend() + theme(axis.ticks = element_blank(), axis.text = element_blank())
   
   query.projected[[i]] <- cellstate.predict(ref=ref, query=query.projected[[i]], reduction = "umap")
@@ -187,7 +187,7 @@ While T cells from the lymphnode are mostly of the follicular helper lineage, tu
 
 # Diagnostics of query-reference fit
 
-Radar plots for a panel of marker genes are a good initial indication of how well the query can be matched to the reference.
+**Radar plots** for a panel of marker genes are a good initial indication of how well the query can be matched to the reference.
 
 ```{r fig.height=9, fig.width=13}
 genes4radar <- c("Cxcr6","Id2","Tbx21","Ccl5","Ly6c2","Cxcr5","Tox","Izumo1r","Tnfsf8", "Tcf7","Foxp3","Ctla4")
@@ -198,19 +198,21 @@ rr.list <- plot.states.radar(ref=ref, query=query.projected, genes4radar = genes
 rr <- wrap_plots(rr.list)
 rr
 ```
-We can observe that TILs projected in the Th1 effector cluster lack some key markers for Th1 (Ccl5, Ly6c2). This is a first hint that T helpers from the tumor may be different from Th1 cells in a viral context.
+We can observe that TILs projected in the Th1 effector cluster lack some key markers for Th1 (*Ccl5*, *Ly6c2*). This is a first hint that T helpers from the tumor may be different from Th1 cells in a viral context.
+
+Indeed, as seen below, tumor-specific T cells assigned to Th1 cluster have a much lower silhouette coefficient than other subtypes, suggesting that they fit poorly with the reference Th1 effectors.
 
 ```{r}
 compute_silhouette(ref, query=query.projected$TIL, normalize.scores = T)
 compute_silhouette(ref, query=query.projected$LN, normalize.scores = T)
 ```
 
-Indeed, tumor-specific T cells assigned to Th1 cluster have a much lower silhouette coefficient than other subtypes, suggesting that they fit poorly with the reference Th1 effectors.
+
 
 
 What distinguishes these Th-like TILs from the reference Th1 effectors? The `find.discriminant.genes()` function can help you calculate differentially expressed genes between cells of a specific subset.
 
-```{r fig.height=4}
+```{r fig.height=9, fig.width=9}
 library(EnhancedVolcano)
 min.pct <- 0.1
 min.diff.pct <- 0.3
@@ -230,11 +232,12 @@ head(tab)
 
 a <- EnhancedVolcano(tab, lab = rownames(tab), x = 'avg_log2FC', y = 'p_val',
                      FCcutoff=1, pCutoff = 10^(-10), title="Th1 effector cells",
-                     subtitle = "TILs 1 vs. LCMV spleen",
+                     subtitle = "TILs vs. LCMV spleen",
                      drawConnectors = T, max.overlaps = 20)
 
 a
 ```
+
 Interestingly, several markers associated with Th2 cells are overexpressed in tumoral T helpers, e.g. Ccl1, Ccr8 and Igfbp7, while Th1 markers are downregulated (Ccl5, Ly6c2). This may indicate that helper T cells in the tumor have phenotype more similar to Th2 rather than the Th1 lineage.
 
 
@@ -247,9 +250,10 @@ set.seed(1234)
 merged <- recalculate.embeddings(ref, projected = query.projected$TIL, umap.method = "umap")
 
 Idents(merged) <- "functional.cluster"
-plot.projection(ref=merged, query=subset(merged, subset=ref_or_query=="query"), cols = palette, linesize=0.5) + 
-  theme(aspect.ratio = 1) + ggtitle("Projected cells in recalculated reference space")
+plot.projection(ref=merged, query=subset(merged, subset=ref_or_query=="query"), linesize=0.5) + 
+  theme(aspect.ratio = 1) + ggtitle("Recalculated reference space")
 ```
+
 Where do the TILs end up in the recalculated embedding?
 
 ```{r fig.height=3.5, fig.width=8}
@@ -276,6 +280,7 @@ merged <- FindNeighbors(merged, reduction = "pca", dims = 1:ndim)
 merged <- FindClusters(merged, resolution = 0.8)
 DimPlot(merged, reduction = "umap", group.by = "seurat_clusters", label = T) + theme(aspect.ratio=1) + theme(axis.ticks = element_blank(), axis.text = element_blank()) + NoLegend()
 ```
+
 We can now annotate the new cluster of Th-like cells from the tumor, as well as the combined cluster of Tregs from the reference and the tumor. This constitutes an updated reference that you can use directly to project and interpret new data!
 
 ```{r fig.height=3.5, fig.width=5}
@@ -291,6 +296,7 @@ merged$functional.cluster.new[merged$seurat_clusters == "tumoralTh"] <- merged$s
 DimPlot(merged, reduction = "umap", group.by = "functional.cluster.new",cols = palette2) + theme(aspect.ratio=1) + theme(axis.ticks = element_blank(), axis.text = element_blank()) + ggtitle("Updated reference map")
 
 ```
+
 # Further reading
 
 Dataset available on Gene Expression Omnibus -  [GSE200635](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE200635)

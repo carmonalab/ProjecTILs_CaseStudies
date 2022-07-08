@@ -23,3 +23,7 @@ Re-analysis of the dataset by Bassez et al 2020 of breast cancer patients treate
 
 A case study of projection of virus-specific CD4+ T cells in late acute infection.
 
+
+# 6. [Detecting novel/unrepresented cell states](https://carmonalab.github.io/ProjecTILs_CaseStudies/novelstate.html)
+
+Projection of tumor-specific T cells on a viral reference, illustrating how one can interpret subtypes not represented in the reference.
