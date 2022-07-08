@@ -38,7 +38,7 @@ opts_knit$set(width=75)
 
 This case study illustrates how you can apply reference-based analysis of single-cell data to interpret cell states beyond those represented in the reference map. Upon encountering novel cell states, a reference map can also be updated to incorporate the new cellular diversity.
 
-For this example, we will use a dataset of CD4+ T cells responding to MC38 tumors (all T cells are specific for the GP66 epitope), both from the tumor (TILs) and from lymphnodes (LN) of two mice. The data are available at [GEO - GSE200635](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE200635). We will project these T cells on a reference map of LCMV virus-specific CD4+ T cells, and determine the degree of correspondence of the T cells from the two disease models.
+For this example, we will use a dataset of CD4+ T cells responding to MC38_GP66 tumors (all T cells are specific for the GP66 epitope), both from the tumor (TILs) and from lymphnodes (LN) of two mice. The data are available at [GEO - GSE200635](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE200635). We will project these T cells on a reference map of LCMV virus-specific CD4+ T cells, and determine the degree of correspondence of the T cells from the two disease models.
 
 To install the ProjecTILs package for reference-based analysis of scRNA-seq data, please refer to the instructions on the [ProjecTILs repository](https://github.com/carmonalab/ProjecTILs). 
 
@@ -149,6 +149,9 @@ DimPlot(ref, cols = palette)
 ```
 
 # Project tumor-specific data into viral atlas
+
+The `make.projection()` function from the ProjecTILs package allows projecting new data into the reference map. The `anchor_coverage` parameter (between 0 and 1) controls the fraction of integration anchors to be used for batch effect correction; in this case we use a relatively low anchor_coverage value to account for the diversity of the query and reference and let batch effect correction be guided by fewer, more robust anchors.
+
 ```{r}
 #Project data by subject (two mice separately)
 query.list <- SplitObject(data, split.by = "subject")
