@@ -277,7 +277,7 @@ d <- FeaturePlot(merged, features = "newclusters") + theme(aspect.ratio=1) +
   theme(axis.ticks = element_blank(), axis.text = element_blank()) + ggtitle("Query-enriched clusters")
 
 
-a | b | c | d
+(a | b) / (c | d)
 ```
 
 Tregs of the query were much more abundant than those of the reference, but they all occupy the same area. 
@@ -298,6 +298,7 @@ merged$functional.cluster.new[merged$seurat_clusters == "tumoralTh"] <- merged$s
 DimPlot(merged, reduction = "umap", group.by = "functional.cluster.new",cols = palette2) + theme(aspect.ratio=1) + theme(axis.ticks = element_blank(), axis.text = element_blank()) + ggtitle("Updated reference map")
 
 ```
+
 This constitutes an updated reference that you can use directly to project and interpret new data!
 
 
