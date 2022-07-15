@@ -150,7 +150,7 @@ DimPlot(ref, cols = palette)
 
 # Project tumor-specific data into viral atlas
 
-The `make.projection()` function from the ProjecTILs package allows projecting new data into the reference map. The `anchor_coverage` parameter (between 0 and 1) controls the fraction of integration anchors to be used for batch effect correction; in this case we use a relatively low anchor_coverage value to account for the diversity of the query and reference and let batch effect correction be guided by fewer, more robust anchors.
+The `make.projection()` function from the ProjecTILs package allows projecting new data into the reference map. 
 
 ```{r}
 #Project data by subject (two mice separately)
