@@ -156,7 +156,7 @@ The `make.projection()` function from the ProjecTILs package allows projecting n
 #Project data by subject (two mice separately)
 query.list <- SplitObject(data, split.by = "subject")
 
-query.projected <- make.projection(query.list, ref=ref, anchor_coverage =  0.3, ncores = 2)
+query.projected <- make.projection(query.list, ref=ref, ncores = 2)
 ```
 
 Now see projection on individual samples
@@ -250,7 +250,7 @@ We can re-cacalculate the low-dimensional representation of the data to also acc
 
 ```{r fig.height=3.5, fig.width=5}
 set.seed(1234)
-merged <- recalculate.embeddings(ref, projected = query.projected$TIL, umap.method = "umap")
+merged <- recalculate.embeddings(ref, projected = query.projected$TIL, umap.method = "umap", resol = 1)
 
 Idents(merged) <- "functional.cluster"
 plot.projection(ref=merged, query=subset(merged, subset=ref_or_query=="query"), linesize=0.5) + 
@@ -267,29 +267,28 @@ a <- DimPlot(sub, reduction = "umap", cols=palette, group.by = "functional.clust
 
 sub <- merged
 sub$functional.cluster[sub$ref_or_query == "ref"] = NA
+
 b <- DimPlot(sub, reduction = "umap", cols=palette, group.by = "functional.cluster") + theme(aspect.ratio=1) + 
   theme(axis.ticks = element_blank(), axis.text = element_blank()) + ggtitle("Projected")
 
-a | b
+c <- DimPlot(merged, group.by =  "seurat_clusters" , label = T) + theme(aspect.ratio=1) + 
+  theme(axis.ticks = element_blank(), axis.text = element_blank()) + ggtitle("re-clustering") + NoLegend()
+
+d <- FeaturePlot(merged, features = "newclusters") + theme(aspect.ratio=1) + 
+  theme(axis.ticks = element_blank(), axis.text = element_blank()) + ggtitle("Query-enriched clusters")
+
+
+a | b | c | d
 ```
 
 Tregs of the query were much more abundant than those of the reference, but they all occupy the same area. 
 Tumor-specific T helpers instead appear to form a separate cluster in the recalculated map.
 
-```{r fig.height=3.5, fig.width=5}
-DefaultAssay(merged) <- "integrated"
-
-ndim <- ncol(ref@misc$umap_object$data)
-merged <- FindNeighbors(merged, reduction = "pca", dims = 1:ndim)
-merged <- FindClusters(merged, resolution = 0.8)
-DimPlot(merged, reduction = "umap", group.by = "seurat_clusters", label = T) + theme(aspect.ratio=1) + theme(axis.ticks = element_blank(), axis.text = element_blank()) + NoLegend()
-```
-
 We can now annotate the new cluster of Th-like cells from the tumor, as well as the combined cluster of Tregs from the reference and the tumor. This constitutes an updated reference that you can use directly to project and interpret new data!
 
 ```{r fig.height=3.5, fig.width=5}
 merged$functional.cluster[merged$seurat_clusters == 9] <- "Treg"
-merged$functional.cluster[merged$seurat_clusters == 12] <- "tumoralTh"
+merged$functional.cluster[merged$seurat_clusters == 13] <- "tumoralTh"
 
 palette2 <- c(palette, tumoralTh="brown")
 merged@misc$atlas.palette <- palette2
