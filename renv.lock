@@ -243,8 +243,8 @@
       "RemoteRepo": "ProjecTILs",
       "RemoteUsername": "carmonalab",
       "RemoteRef": "HEAD",
-      "RemoteSha": "93e6bc728487f8c2702797b437d7efe491e92c8b",
-      "Hash": "1c89ac783181e97dc802c0d7d57c3ed0",
+      "RemoteSha": "4544d748e668d6725e1075db41815edbbbee754f",
+      "Hash": "ca86ca69a22cf0331c51d382b467ab03",
       "Requirements": [
         "BiocParallel",
         "Matrix",
@@ -346,10 +346,10 @@
     },
     "Rcpp": {
       "Package": "Rcpp",
-      "Version": "1.0.8.3",
+      "Version": "1.0.9",
       "Source": "Repository",
       "Repository": "CRAN",
-      "Hash": "32e79b908fda56ee57fe518a8d37b864",
+      "Hash": "e9c08b94391e9f3f97355841229124f2",
       "Requirements": []
     },
     "RcppAnnoy": {
@@ -559,10 +559,10 @@
     },
     "VGAM": {
       "Package": "VGAM",
-      "Version": "1.1-6",
+      "Version": "1.1-7",
       "Source": "Repository",
       "Repository": "CRAN",
-      "Hash": "3a3f2e54570b48d0670c26363b6728c4",
+      "Hash": "49541ee41be830894419bcf700d4e625",
       "Requirements": []
     },
     "XVector": {
@@ -1242,10 +1242,10 @@
     },
     "ica": {
       "Package": "ica",
-      "Version": "1.0-2",
+      "Version": "1.0-3",
       "Source": "Repository",
       "Repository": "CRAN",
-      "Hash": "95ba9b882bb834ecbdad37338a11f3f8",
+      "Hash": "d9b52ced14e24a0e69e228c20eb5eb27",
       "Requirements": []
     },
     "igraph": {

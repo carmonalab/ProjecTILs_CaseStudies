@@ -158,7 +158,7 @@ Now we have loaded the query samples in a Seurat object, and an atlas object to 
 ```{r message=F, warning=F, results=F}
 querydata <- SplitObject(query.merged, split.by = "Tissue")
 #For serial processing, just set ncores=1
-query.projected <- make.projection(querydata, ref=ref, ncores=ncores, future.maxSize=mem_in_mb)
+query.projected <- make.projection(querydata, ref=ref, ncores=ncores)
 ```
 
 ## Tissue-specific T cell state composition

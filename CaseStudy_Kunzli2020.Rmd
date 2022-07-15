@@ -224,6 +224,6 @@ In line with the original publication, projection of CD4+ T cell scRNA-seq data 
 # References
 
 * M. Künzli, D. Schreiner, T. C. Pereboom, N. Swarnalekha, ..., C. G. King **"Long-lived T follicular helper cells retain plasticity and help sustain humoral immunity"** (2020) Science Immunology
-* M. Andreatta, Z. Sherman, A. Tjitropranoto, M. C. Kelly, T. Ciucci, S. J. Carmona **"A single-cell reference atlas delineates CD4+ T cell subtype-specific adaptation during acute and chronic viral infections"** bioRxiv 2021.09.20.458613; doi: https://doi.org/10.1101/2021.09.20.458613 
+* M. Andreatta, Z. Sherman, A. Tjitropranoto, M. C. Kelly, T. Ciucci, S. J. Carmona **"A single-cell reference map delineates CD4+ T cell subtype-specific adaptation during acute and chronic viral infections"** eLife 2022 doi: https://doi.org/10.7554/eLife.76339
 
 
