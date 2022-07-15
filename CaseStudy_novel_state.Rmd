@@ -258,7 +258,7 @@ plot.projection(ref=merged, query=subset(merged, subset=ref_or_query=="query"), 
 
 Where do the TILs end up in the recalculated embedding?
 
-```{r fig.height=3.5, fig.width=8}
+```{r fig.height=5, fig.width=8}
 sub <- merged
 sub$functional.cluster[sub$ref_or_query == "query"] = NA
 a <- DimPlot(sub, reduction = "umap", cols=palette, group.by = "functional.cluster") + theme(aspect.ratio=1) + 
@@ -287,7 +287,7 @@ We can now annotate the new cluster of Th-like cells from the tumor, as well as 
 
 ```{r fig.height=3.5, fig.width=5}
 merged$functional.cluster[merged$seurat_clusters == 9] <- "Treg"
-merged$functional.cluster[merged$seurat_clusters == 13] <- "tumoralTh"
+merged$functional.cluster[merged$seurat_clusters == 12] <- "tumoralTh"
 
 palette2 <- c(palette, tumoralTh="brown")
 merged@misc$atlas.palette <- palette2
