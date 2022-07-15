@@ -36,9 +36,9 @@ opts_knit$set(width=75)
 
 # Background
 
-This case study illustrates how you can apply reference-based analysis of single-cell data to interpret cell states beyond those represented in the reference map. Upon encountering novel cell states, a reference map can also be updated to incorporate the new cellular diversity.
+This case study illustrates how you can apply reference-based analysis of single-cell data to interpret cell states beyond those represented in the reference map. Upon encountering novel cell states, a reference map can also be updated to incorporate the new cell diversity.
 
-For this example, we will use a dataset of CD4+ T cells responding to MC38_GP66 tumors (all T cells are specific for the GP66 epitope), both from the tumor (TILs) and from lymphnodes (LN) of two mice. The data are available at [GEO - GSE200635](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE200635). We will project these T cells on a reference map of LCMV virus-specific CD4+ T cells, and determine the degree of correspondence of the T cells from the two disease models.
+For this example, we will use a dataset of CD4+ T cells responding to color adenocarcinoma murine tumors MC38_GP66 (all T cells are specific for the GP66 epitope expressed by the tumor). These cells were isolated both from the tumor (TILs) and from lymphnodes (LN) of two mice, individually. The data are available at [GEO - GSE200635](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE200635). We will project these T cells on a reference map of virus-specific CD4+ T cells, and determine the degree of correspondence of the T cells from the two disease models.
 
 To install the ProjecTILs package for reference-based analysis of scRNA-seq data, please refer to the instructions on the [ProjecTILs repository](https://github.com/carmonalab/ProjecTILs). 
 
@@ -64,7 +64,7 @@ datadir <- "input/MC38_GP66"
 geodir <- sprintf("%s/%s", datadir, geo_acc)
 ```
 
-```{r, message=FALSE, warning=F, results=FALSE, eval=F}
+```{r, message=FALSE, warning=F, results=FALSE, eval=T}
 gse <- getGEO(geo_acc)
 
 system(paste0("mkdir -p ", datadir))
@@ -156,7 +156,7 @@ The `make.projection()` function from the ProjecTILs package allows projecting n
 #Project data by subject (two mice separately)
 query.list <- SplitObject(data, split.by = "subject")
 
-query.projected <- make.projection(query.list, ref=ref, anchor_coverage =  0.3)
+query.projected <- make.projection(query.list, ref=ref, anchor_coverage =  0.3, ncores = 2)
 ```
 
 Now see projection on individual samples
@@ -186,7 +186,7 @@ for (i in seq_along(query.projected)) {
 
 wrap_plots(plots, ncol=2)
 ```
-While T cells from the lymphnode are mostly of the follicular helper lineage, tumor-infiltrating T cells are predicted to be mostly Tregs and T helpers. We can inspect a panel of markers genes for these subtype, to verify how well they match the reference profiles.
+While T cells from the lymphnode are mostly of the follicular helper lineage, tumor-infiltrating T cells are predicted to be mostly Tregs and T helpers. We can inspect a panel of important CD4 T cell markers genes for these subtypes, to verify how well they match the reference profiles.
 
 # Diagnostics of query-reference fit
 
@@ -246,7 +246,7 @@ Interestingly, several markers associated with Th2 cells are overexpressed in tu
 
 # Recalculate map with novel state
 
-We can recaulculate the low dimensional representation of the data to also account for the projected data. In this way, any novelty brought by the new dataset can contribute in determining the low dimensional space.
+We can re-cacalculate the low-dimensional representation of the data to also account for the projected data. In this way, any novelty brought by the new dataset can contribute in determining the low dimensional space.
 
 ```{r fig.height=3.5, fig.width=5}
 set.seed(1234)
@@ -273,7 +273,8 @@ b <- DimPlot(sub, reduction = "umap", cols=palette, group.by = "functional.clust
 a | b
 ```
 
-Tregs of the query were much more abundant than those of the reference, but they all occupy the same area. Tumor-specific T helpers instead appear to form a separate cluster in the recalculated map.
+Tregs of the query were much more abundant than those of the reference, but they all occupy the same area. 
+Tumor-specific T helpers instead appear to form a separate cluster in the recalculated map.
 
 ```{r fig.height=3.5, fig.width=5}
 DefaultAssay(merged) <- "integrated"
