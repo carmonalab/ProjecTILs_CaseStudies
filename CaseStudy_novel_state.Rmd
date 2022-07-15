@@ -150,7 +150,7 @@ DimPlot(ref, cols = palette)
 
 # Project tumor-specific data into viral atlas
 
-The `make.projection()` function from the ProjecTILs package allows projecting new data into the reference map. The `anchor_coverage` parameter (between 0 and 1) controls the fraction of integration anchors to be used for batch effect correction; in this case we use a relatively low anchor_coverage value to account for the diversity of the query and reference and let batch effect correction be guided by fewer, more robust anchors.
+The `make.projection()` function from the ProjecTILs package allows projecting new data into the reference map. 
 
 ```{r}
 #Project data by subject (two mice separately)
@@ -241,8 +241,7 @@ a <- EnhancedVolcano(tab, lab = rownames(tab), x = 'avg_log2FC', y = 'p_val',
 a
 ```
 
-Interestingly, several markers associated with Th2 cells are overexpressed in tumoral T helpers, e.g. Ccl1, Ccr8 and Igfbp7, while Th1 markers are downregulated (Ccl5, Ly6c2). This may indicate that helper T cells in the tumor have phenotype more similar to Th2 rather than the Th1 lineage.
-
+Interestingly, several markers associated with Th2 differentiation are overexpressed in tumoral T helpers, e.g. Ccl1, Ccr8 and Igfbp7, while Th1-associated genes are downregulated (Ccl5, Ly6c2). This suggests that CD4+ T cells acquire distinct effector programs in cancer and infection.
 
 # Recalculate map with novel state
 
@@ -278,13 +277,13 @@ d <- FeaturePlot(merged, features = "newclusters") + theme(aspect.ratio=1) +
   theme(axis.ticks = element_blank(), axis.text = element_blank()) + ggtitle("Query-enriched clusters")
 
 
-a | b | c | d
+(a | b) / (c | d)
 ```
 
 Tregs of the query were much more abundant than those of the reference, but they all occupy the same area. 
 Tumor-specific T helpers instead appear to form a separate cluster in the recalculated map.
 
-We can now annotate the new cluster of Th-like cells from the tumor, as well as the combined cluster of Tregs from the reference and the tumor. This constitutes an updated reference that you can use directly to project and interpret new data!
+We can now annotate the new cluster of Th-like cells from the tumor, as well as the combined cluster of Tregs from the reference and the tumor. 
 
 ```{r fig.height=3.5, fig.width=5}
 merged$functional.cluster[merged$seurat_clusters == 9] <- "Treg"
@@ -299,6 +298,9 @@ merged$functional.cluster.new[merged$seurat_clusters == "tumoralTh"] <- merged$s
 DimPlot(merged, reduction = "umap", group.by = "functional.cluster.new",cols = palette2) + theme(aspect.ratio=1) + theme(axis.ticks = element_blank(), axis.text = element_blank()) + ggtitle("Updated reference map")
 
 ```
+
+This constitutes an updated reference that you can use directly to project and interpret new data!
+
 
 # Further reading
 
