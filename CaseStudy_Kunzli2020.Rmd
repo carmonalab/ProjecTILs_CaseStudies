@@ -42,7 +42,7 @@ CD4+ T cells play a central role in initiating and shaping adaptive immune respo
 
 Differentiation into a specific CD4+ T cell subset depends on several factor, e.g. the tissue, the antigen, and which cytokines are found in the surrounding environment. One such subset, follicular helper T cells (Tfh), are located in secondary lymphoid organs and promote antibody responses via direct cell contact with B cells. However, long-lived Tfh cells have been difficult to detect and characterize. In their study, [Kunzli et al. (2020)](https://pubmed.ncbi.nlm.nih.gov/32144185/) found that Tfh cells are particularly susceptible to NAD-induced cell death (NICD) during sample isolation, and proposed administration of an inhibitor blocking NICD to enrich Tfh cell populations after infection. We will re-analyze their single-cell data for NICD-treated cells at day 35 (versus a control sample at the same time point) using an automated pipeline.
 
-For this purpose, we will apply ProjecTILs to analyse these samples in the context of a reference atlas of CD4+ T cells in viral infection (described in [Andreatta et al. (2021)](https://www.biorxiv.org/content/10.1101/2021.09.20.458613v1)). This atlas can also be explored interactively through the SPICA portal at: [https://spica.unil.ch/refs/viral-CD4-T](https://spica.unil.ch/refs/viral-CD4-T)
+For this purpose, we will apply ProjecTILs to analyse these samples in the context of a reference atlas of CD4+ T cells in viral infection (described in [Andreatta et al. (2022)](https://doi.org/10.7554/eLife.76339)). This atlas can also be explored interactively through the SPICA portal at: [https://spica.unil.ch/refs/viral-CD4-T](https://spica.unil.ch/refs/viral-CD4-T)
 
 
 # R Environment
@@ -120,7 +120,7 @@ table(query.merged$Sample)
 
 # Load reference atlas
 
-The CD4+ T cell atlas is described in [Andreatta et al. (2021)](https://www.biorxiv.org/content/10.1101/2021.09.20.458613v1), and can be downloaded from Figshare at: [doi.org/10.6084/m9.figshare.16592693.v2](https://doi.org/10.6084/m9.figshare.16592693.v2)
+The CD4+ T cell atlas is described in [Andreatta et al. (2022)](https://doi.org/10.7554/eLife.76339), and can be downloaded from Figshare at: [doi.org/10.6084/m9.figshare.16592693.v2](https://doi.org/10.6084/m9.figshare.16592693.v2)
 
 You can also use the commands below to download the atlas directly within R, and load it into memory.
 
