@@ -1,0 +1,257 @@
+---
+title: Effect of anti-PD-L1 therapy on viral CD4+ T cells
+date: "`r Sys.Date()`"
+author: "M. Andreatta, S. Carmona"
+output:
+  rmdformats::readthedown:
+    self-contained: true
+    highlight: haddock
+    thumbnails: false
+    css: styles.css
+knit: (function(input_file, encoding) {
+  out_dir <- 'docs';
+  rmarkdown::render(input_file, encoding=encoding,
+  output_file=file.path(dirname(input_file), out_dir, 'Snell.html'))})
+---
+
+```{r setup, echo=FALSE}
+#install.packages("rmdformats")
+#Template markdown setup
+library(knitr)
+library(rmdformats)
+library(formatR)
+
+## Global options
+options(max.print="75")
+opts_chunk$set(echo=TRUE,
+	             cache=TRUE,
+               cache.lazy=FALSE,
+               prompt=FALSE,
+               tidy=TRUE,
+               comment=NA,
+               message=FALSE,
+               warning=FALSE,
+               dev='png')
+opts_knit$set(width=75)
+
+```
+
+# Background
+
+The PD1:PD-L1 immune checkpoint is a central target in immunotherapies. However, the effect of PD-L1 blockade on CD4+ T cells is not well understood. [Snell et al. (2021)](https://www.nature.com/articles/s41590-021-01060-7) set out to characterize CD4+ T cell heterogeneity during chronic viral infections, and how these cells were affected by anti-PD-L1 therapy. They found that anti-PD-L1 blockade specifically increased the proportion of Th1 cells, and restored their cytotoxic capacities.
+
+In their study, the also generated scRNA-seq data of virus-specific CD4+ T cells isolated from mice chronically infected with LMCV, after treatment with an anti-PD-L1 antibody or with an isotype antibody (control). We will apply ProjecTILs to re-analyse these samples in the context of a reference atlas of CD4+ T cells in viral infection (described in [Andreatta et al. (2022)](https://doi.org/10.7554/eLife.76339)). This atlas can also be explored interactively through the SPICA portal at: [https://spica.unil.ch/refs/viral-CD4-T](https://spica.unil.ch/refs/viral-CD4-T)
+
+
+# R Environment
+
+```{r, message=FALSE, warning=F, results=FALSE}
+library(renv)
+renv::restore()
+
+library(ggplot2)
+library(reshape2)
+library(patchwork)
+library(Seurat)
+library(ProjecTILs)
+```
+
+# Download scRNA-seq data
+
+We can download the single-cell data directly from Gene Expression Omnibus (GEO).
+```{r, message=FALSE, warning=F, results=FALSE}
+Sys.setenv(R_REMOTES_NO_ERRORS_FROM_WARNINGS = "true")
+options(timeout = max(300, getOption("timeout")))
+
+library(GEOquery)
+geo_acc <- "GSE163345"
+datadir <- "input/Snell"
+
+gse <- getGEO(geo_acc)
+
+system(paste0("mkdir -p ", datadir))
+getGEOSuppFiles(geo_acc, baseDir = datadir)
+```
+
+Read in the count matrices in 10x format
+```{r}
+system(sprintf("tar -xvf %s/%s/GSE163345_RAW.tar -C %s", datadir, geo_acc, datadir))
+
+ids <- c("GSM4977292", "GSM4977293")
+
+iso <- ReadMtx(mtx=sprintf("%s/%s_CD4_ISO_matrix.mtx.gz", datadir, ids[1]),
+               cells=sprintf("%s/%s_CD4_ISO_barcodes.tsv.gz", datadir, ids[1]),
+               features=sprintf("%s/%s_CD4_ISO_genes.tsv.gz", datadir, ids[1])
+               )
+
+pdl <- ReadMtx(mtx=sprintf("%s/%s_CD4_PDL_matrix.mtx.gz", datadir, ids[2]),
+               cells=sprintf("%s/%s_CD4_PDL_barcodes.tsv.gz", datadir, ids[2]),
+               features=sprintf("%s/%s_CD4_PDL_genes.tsv.gz", datadir, ids[2])
+               )
+```
+
+# scRNA-seq preprocessing and QC
+
+Create Seurat objects
+```{r}
+#Unique barcodes
+colnames(iso) <- paste('Sne1', colnames(iso), sep = '_')
+colnames(pdl) <- paste('Sne2', colnames(pdl), sep = '_') 
+
+data_iso <- CreateSeuratObject(counts=iso, assay="RNA")
+data_iso$Condition <- "isotype"
+
+data_pdl <- CreateSeuratObject(counts=pdl, assay="RNA")
+data_pdl$Condition <- "PDL1_treated"
+
+#Merge in single object
+data_seurat <- merge(data_iso, data_pdl)
+table(data_seurat$Condition)
+```
+
+Basic quality control
+```{r fig.width=7, fig.height=7}
+data_seurat <- NormalizeData(data_seurat)
+
+patterns <- c("^Rp","^mt-")
+data_seurat <- AddMetaData(data_seurat, metadata = PercentageFeatureSet(
+  data_seurat, pattern = patterns[1]), col.name = "percent.ribo")
+data_seurat <- AddMetaData(data_seurat, metadata = PercentageFeatureSet(
+  data_seurat, pattern = patterns[2]), col.name = "percent.mito")
+
+Idents(data_seurat) <- "Condition"
+VlnPlot(data_seurat, features = c("nFeature_RNA", "nCount_RNA","percent.ribo","percent.mito"), ncol = 2, pt.size=0.01)
+```
+
+```{r}
+cutoffs <- list()
+cutoffs[["percent.ribo"]] <- c(min=0,max=50)
+cutoffs[["percent.mito"]] <- c(min=0,max=6)
+cutoffs[["nFeature_RNA"]] <- c(min=500,max=3000) 
+cutoffs[["nCount_RNA"]] <- c(min=1000,max=10000)
+
+data_seurat <- subset(data_seurat, subset = 
+                        nFeature_RNA > cutoffs[["nFeature_RNA"]]["min"] & nFeature_RNA < cutoffs[["nFeature_RNA"]]["max"] & 
+                        nCount_RNA   > cutoffs[["nCount_RNA"]]["min"]   & nCount_RNA   < cutoffs[["nCount_RNA"]]["max"]   &
+                        percent.ribo > cutoffs[["percent.ribo"]]["min"] & percent.ribo < cutoffs[["percent.ribo"]]["max"] &
+                        percent.mito > cutoffs[["percent.mito"]]["min"] & percent.mito < cutoffs[["percent.mito"]]["max"] 
+                      )
+```
+
+Calculate low dimensional embeddings for the two samples
+```{r fig.width=7, fig.height=3}
+sample.list <- SplitObject(data_seurat, split.by = "Condition")
+names(sample.list)
+
+sample.list <- lapply(sample.list, function(x) {
+  ScaleData(x) |> FindVariableFeatures(nfeatures = 500) |> RunPCA(npcs=15) |> RunUMAP(dims=1:15)
+})
+DimPlot(sample.list$isotype) | DimPlot(sample.list$PDL1_treated)
+```
+
+# Load reference map
+
+The CD4+ T cell map is described in Andreatta et al. (2022), and can be downloaded from Figshare at: [doi.org/10.6084/m9.figshare.16592693.v2](https://figshare.com/articles/dataset/ref_LCMV_CD4_mouse_release_v1_rds/16592693/2)
+
+You can also use the commands below to download the atlas directly within R, and load it into memory.
+
+```{r}
+cd4.atlas.file <- "ref_LCMV_CD4_mouse_release_v1.rds"
+if (!file.exists(cd4.atlas.file)) {
+    dataUrl <- "https://figshare.com/ndownloader/files/31057081"
+    download.file(dataUrl, cd4.atlas.file)
+}
+ref <- load.reference.map(cd4.atlas.file)
+
+palette <- ref@misc$atlas.palette
+
+DimPlot(ref, cols = palette) + theme(aspect.ratio = 1)
+```
+
+# Run ProjecTILs
+
+ProjecTILs can be used in two modes: 1) as a classifier, to annotate query cells in their original space; 2) as a method to embed the query dataset into the same space of the reference map. We will apply both below.
+
+## 1) ProjecTILs classifier
+
+The `ProjecTILs.classifier` function integrates the query with the reference and transfers cell type labels from reference to query. The original low-dimensional spaces of the query are not modified:
+
+```{r}
+sample.class <- list()
+sample.class$isotype <- ProjecTILs.classifier(query=sample.list$isotype, ref=ref, filter.cells = FALSE)
+sample.class$PDL1_treated <- ProjecTILs.classifier(query=sample.list$PDL1_treated, ref=ref, filter.cells = FALSE)
+
+a <- DimPlot(sample.class$isotype, group.by="functional.cluster", cols = palette) +
+  theme(aspect.ratio = 1) + ggtitle("Isotype")
+b <- DimPlot(sample.class$PDL1_treated, group.by="functional.cluster", cols=palette) +
+  theme(aspect.ratio = 1) + ggtitle("PDL1-treated")
+a | b
+```
+
+We can compare the subtype composition between anti-PD-L1 treated and isotype-treated CD4+ T cells. We see a nearly three-fold increase in Th1 subtypes upon anti-PD-L1 blockade compared to control.
+
+```{r fig.height=3, fig.width=8}
+a <- plot.statepred.composition(ref=ref, query=sample.class$isotype,
+                                metric = "Percent") + ggtitle("Isotype") + ylim(0,40)
+b <- plot.statepred.composition(ref=ref, query=sample.class$PDL1_treated,
+                                metric = "Percent") + ggtitle("PDL1_treated") + ylim(0,40)
+a | b
+```
+
+## 2) ProjecTILs reference embedding
+
+The `Run.ProjecTILs` function integrates the query with the reference, transfers cell type labels from reference to query, and embeds the cells from the query in the same low-dimensional embeddings (PCA and UMAP) of the reference. This allows comparing different conditions in the same system of coordinates:
+
+```{r fig.width=9}
+obj.projected <- Run.ProjecTILs(query=sample.list, ref=ref, filter.cells = FALSE)
+
+a <- plot.projection(ref=ref, query=obj.projected$isotype, linesize = 0.5) + 
+   theme(aspect.ratio = 1) + ggtitle("Isotype")
+b <- plot.projection(ref=ref, query=obj.projected$PDL1_treated, linesize = 0.5) +
+   theme(aspect.ratio = 1) + ggtitle("PDL1-treated")
+a | b
+```
+
+As in the classifier mode, we can examine subtype composition
+
+```{r fig.height=3, fig.width=8}
+a <- plot.statepred.composition(ref=ref, query=obj.projected$isotype, metric = "Percent") +
+  ggtitle("Isotype") + ylim(0,40)
+                                  
+  
+b <- plot.statepred.composition(ref=ref, query=obj.projected$PDL1_treated, metric = "Percent") + 
+  ggtitle("PDL1-treated") + ylim(0,40)
+a | b 
+```
+
+Expression profiles for a panel of marker genes shows good agreement of the projected data with the reference
+```{r fig.height=8, fig.width=11, cache=FALSE}
+genes4radar <- c("Cxcr6","Gzmb","Ccl5","Nkg7","Ly6c2","Cxcr5","Tox","Izumo1r","Tnfsf8", "Ccr7","Il7r","Tcf7","Eomes","Gzmk","Crtam","Ifit1","Foxp3","Ikzf2","Il2ra")
+
+plot.states.radar(ref=ref, query=obj.projected, genes4radar=genes4radar, min.cells = 20)
+```
+
+Are there any differences between the control Th1 cells and the anti-PD-L1 treated Th1 cells?
+```{r fig.height=7, fig.width=7}
+library(EnhancedVolcano)
+deg <- find.discriminant.genes(ref, query=obj.projected$PDL1_treated,
+                                 query.control=obj.projected$isotype, state="Th1_Effector")
+
+EnhancedVolcano(deg, lab = rownames(deg),x = 'avg_log2FC', y = 'p_val', pCutoff = 10e-3, FCcutoff = 0.2, labSize = 5,
+                legendPosition = 'none', drawConnectors = F,
+                 title = 'Anti-PD-L1 vs. Isotype (Th1_Effector)')
+```
+
+We observe that Th1 effector cells after anti-PD-L1 treatment upregulated a Th1-associated gene module that includes Klrd1, Plac8, Ctla2a and Ly6c2. This observation, together with the amplification of Th1 effectors upon treatment, confirm the finding of the original study by Snell et al. (2021). 
+
+# Further reading
+
+Original publication - [Snell et al. (2021) Nature Immunology](https://www.nature.com/articles/s41590-021-01060-7)
+
+More about the virus-specific CD4+ T cell map - [Andreatta et al. (2022) eLife](https://elifesciences.org/articles/76339)
+
+The ProjecTILs method [Andreatta et. al (2021) Nat. Comm.](https://www.nature.com/articles/s41467-021-23324-4) and [code](https://github.com/carmonalab/ProjecTILs)
+
+ProjecTILs case studies - [INDEX](https://carmonalab.github.io/ProjecTILs_CaseStudies/) - [Repository](https://github.com/carmonalab/ProjecTILs_CaseStudies)
+
+
