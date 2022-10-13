@@ -509,6 +509,14 @@
         "SummarizedExperiment"
       ]
     },
+    "SparseM": {
+      "Package": "SparseM",
+      "Version": "1.81",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "2042cd9759cc89a453c4aefef0ce9aae",
+      "Requirements": []
+    },
     "SummarizedExperiment": {
       "Package": "SummarizedExperiment",
       "Version": "1.26.1",
@@ -546,6 +554,14 @@
         "SummarizedExperiment",
         "data.table"
       ]
+    },
+    "VGAM": {
+      "Package": "VGAM",
+      "Version": "1.1-7",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "49541ee41be830894419bcf700d4e625",
+      "Requirements": []
     },
     "XVector": {
       "Package": "XVector",
@@ -758,6 +774,16 @@
         "lazyeval"
       ]
     },
+    "cubature": {
+      "Package": "cubature",
+      "Version": "2.0.4.5",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "cfe25d3fb12efe9ec49b449561b2dad7",
+      "Requirements": [
+        "Rcpp"
+      ]
+    },
     "curl": {
       "Package": "curl",
       "Version": "4.3.3",
@@ -789,6 +815,17 @@
       "Repository": "CRAN",
       "Hash": "cf6b206a045a684728c3267ef7596190",
       "Requirements": []
+    },
+    "doParallel": {
+      "Package": "doParallel",
+      "Version": "1.0.17",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "451e5edf411987991ab6a5410c45011f",
+      "Requirements": [
+        "foreach",
+        "iterators"
+      ]
     },
     "dplyr": {
       "Package": "dplyr",
@@ -839,6 +876,26 @@
       "Hash": "9171b012a55a1ef53f1442b1d798a3b4",
       "Requirements": []
     },
+    "evd": {
+      "Package": "evd",
+      "Version": "2.3-6.1",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "14872523c118b47b6f4faae02dc23c02",
+      "Requirements": []
+    },
+    "evmix": {
+      "Package": "evmix",
+      "Version": "2.12",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "a92843a325821fd2154581f8c05b5a30",
+      "Requirements": [
+        "MASS",
+        "SparseM",
+        "gsl"
+      ]
+    },
     "fansi": {
       "Package": "fansi",
       "Version": "1.0.3",
@@ -883,6 +940,17 @@
       "Requirements": [
         "htmltools",
         "rlang"
+      ]
+    },
+    "foreach": {
+      "Package": "foreach",
+      "Version": "1.5.2",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "618609b42c9406731ead03adf5379850",
+      "Requirements": [
+        "codetools",
+        "iterators"
       ]
     },
     "formatR": {
@@ -951,6 +1019,21 @@
       "Repository": "CRAN",
       "Hash": "15e9634c0fcd294799e9b2e929ed1b86",
       "Requirements": []
+    },
+    "ggalluvial": {
+      "Package": "ggalluvial",
+      "Version": "0.12.3",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "8e8537ec2a70017be8e5e20b1bbf4e98",
+      "Requirements": [
+        "dplyr",
+        "ggplot2",
+        "lazyeval",
+        "rlang",
+        "tidyr",
+        "tidyselect"
+      ]
     },
     "ggplot2": {
       "Package": "ggplot2",
@@ -1043,6 +1126,14 @@
       "Requirements": [
         "gtable"
       ]
+    },
+    "gsl": {
+      "Package": "gsl",
+      "Version": "2.1-7.1",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "167952c96eec4308c9487e1519a90682",
+      "Requirements": []
     },
     "gtable": {
       "Package": "gtable",
@@ -1183,6 +1274,14 @@
       "Source": "Repository",
       "Repository": "CRAN",
       "Hash": "cfdea9dea85c1a973991c8cbe299f4da",
+      "Requirements": []
+    },
+    "iterators": {
+      "Package": "iterators",
+      "Version": "1.0.14",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "8954069286b4b2b0d023d1b288dce978",
       "Requirements": []
     },
     "jquerylib": {
@@ -1429,6 +1528,14 @@
       "Hash": "11359a5bb73622ab3f4136bf57108b64",
       "Requirements": []
     },
+    "permute": {
+      "Package": "permute",
+      "Version": "0.9-7",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "abf0ca85c1c752e0d04f46334e635046",
+      "Requirements": []
+    },
     "pillar": {
       "Package": "pillar",
       "Version": "1.8.1",
@@ -1508,6 +1615,27 @@
       "Repository": "CRAN",
       "Hash": "cb167f328b3ada4ec5cf67a7df4c900a",
       "Requirements": []
+    },
+    "powerTCR": {
+      "Package": "powerTCR",
+      "Version": "1.17.0",
+      "Source": "Bioconductor",
+      "git_url": "https://git.bioconductor.org/packages/powerTCR",
+      "git_branch": "master",
+      "git_last_commit": "9fabc49",
+      "git_last_commit_date": "2022-04-26",
+      "Hash": "511445e5041c21d16666ac58ed2a4942",
+      "Requirements": [
+        "VGAM",
+        "cubature",
+        "doParallel",
+        "evmix",
+        "foreach",
+        "magrittr",
+        "purrr",
+        "truncdist",
+        "vegan"
+      ]
     },
     "pracma": {
       "Package": "pracma",
@@ -1739,6 +1867,32 @@
         "reshape2"
       ]
     },
+    "scRepertoire": {
+      "Package": "scRepertoire",
+      "Version": "1.7.0",
+      "Source": "Bioconductor",
+      "git_url": "https://git.bioconductor.org/packages/scRepertoire",
+      "git_branch": "master",
+      "git_last_commit": "89b8b27",
+      "git_last_commit_date": "2022-04-26",
+      "Hash": "e2c889e6ccec2a70cea107b22d80f409",
+      "Requirements": [
+        "SeuratObject",
+        "SummarizedExperiment",
+        "doParallel",
+        "dplyr",
+        "ggalluvial",
+        "ggplot2",
+        "igraph",
+        "plyr",
+        "powerTCR",
+        "reshape2",
+        "rlang",
+        "stringdist",
+        "stringr",
+        "vegan"
+      ]
+    },
     "scales": {
       "Package": "scales",
       "Version": "1.2.1",
@@ -1932,6 +2086,14 @@
       "Hash": "cd59e2bcc05a5e34c00fe4760f118960",
       "Requirements": []
     },
+    "stringdist": {
+      "Package": "stringdist",
+      "Version": "0.9.8",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "c8b6c79c3b2d7d8475f3ab35cd99737b",
+      "Requirements": []
+    },
     "stringi": {
       "Package": "stringi",
       "Version": "1.7.8",
@@ -2039,6 +2201,16 @@
         "xfun"
       ]
     },
+    "truncdist": {
+      "Package": "truncdist",
+      "Version": "1.0-2",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "ed3ed12875e0417a645baaecc07dd536",
+      "Requirements": [
+        "evd"
+      ]
+    },
     "tzdb": {
       "Package": "tzdb",
       "Version": "0.3.0",
@@ -2097,6 +2269,20 @@
         "cli",
         "glue",
         "rlang"
+      ]
+    },
+    "vegan": {
+      "Package": "vegan",
+      "Version": "2.6-2",
+      "Source": "Repository",
+      "Repository": "CRAN",
+      "Hash": "97bfb04067dc125eb0f00fda67801898",
+      "Requirements": [
+        "MASS",
+        "cluster",
+        "lattice",
+        "mgcv",
+        "permute"
       ]
     },
     "viridisLite": {

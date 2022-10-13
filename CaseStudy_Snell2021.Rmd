@@ -1,5 +1,5 @@
 ---
-title: Effect of anti-PD-L1 therapy on viral CD4+ T cells
+title: Effect of anti-PD-L1 therapy on CD4+ T cells in chronic infection
 date: "`r Sys.Date()`"
 author: "M. Andreatta, S. Carmona"
 output:
@@ -14,7 +14,7 @@ knit: (function(input_file, encoding) {
   output_file=file.path(dirname(input_file), out_dir, 'Snell.html'))})
 ---
 
-```{r setup, echo=FALSE}
+```{r setup, echo=FALSE, message=FALSE, warning=FALSE, results=FALSE}
 #install.packages("rmdformats")
 #Template markdown setup
 library(knitr)
@@ -34,21 +34,22 @@ opts_chunk$set(echo=TRUE,
                dev='png')
 opts_knit$set(width=75)
 
+library(renv)
+renv::restore()
 ```
 
 # Background
 
-The PD1:PD-L1 immune checkpoint is a central target in immunotherapies. However, the effect of PD-L1 blockade on CD4+ T cells is not well understood. [Snell et al. (2021)](https://www.nature.com/articles/s41590-021-01060-7) set out to characterize CD4+ T cell heterogeneity during chronic viral infections, and how these cells were affected by anti-PD-L1 therapy. They found that anti-PD-L1 blockade specifically increased the proportion of Th1 cells, and restored their cytotoxic capacities.
+The PD1:PD-L1 immune checkpoint is a crucial target for immunotherapies. However, the effect of PD-L1 blockade on CD4+ T cells is not well understood. [Snell et al. (2021)](https://www.nature.com/articles/s41590-021-01060-7) set out to characterize CD4+ T cell heterogeneity during chronic viral infections, and how these cells were affected by anti-PD-L1 therapy. They found that anti-PD-L1 blockade specifically increased the proportion of Th1 cells, and restored their cytotoxic capacities.
 
-In their study, the also generated scRNA-seq data of virus-specific CD4+ T cells isolated from mice chronically infected with LMCV, after treatment with an anti-PD-L1 antibody or with an isotype antibody (control). We will apply ProjecTILs to re-analyse these samples in the context of a reference atlas of CD4+ T cells in viral infection (described in [Andreatta et al. (2022)](https://doi.org/10.7554/eLife.76339)). This atlas can also be explored interactively through the SPICA portal at: [https://spica.unil.ch/refs/viral-CD4-T](https://spica.unil.ch/refs/viral-CD4-T)
+In their study, the also generated scRNA-seq data of virus-specific CD4+ T cells isolated from mice chronically infected with LMCV (33 days p.i.), after treatment with an anti-PD-L1 antibody or with an isotype antibody (control). We will apply ProjecTILs to re-analyse these samples in the context of a reference atlas of CD4+ T cells in viral infection. This atlas was described by [Andreatta et al. (2022) eLife](https://doi.org/10.7554/eLife.76339) and can also be explored interactively through the SPICA portal at: [https://spica.unil.ch/refs/viral-CD4-T](https://spica.unil.ch/refs/viral-CD4-T)
 
 
 # R Environment
 
-```{r, message=FALSE, warning=F, results=FALSE}
-library(renv)
-renv::restore()
+Load the required packages. If you clone the repository, you may reconstitute the R environment using `renv::restore()`
 
+```{r, message=FALSE, warning=FALSE, results=FALSE}
 library(ggplot2)
 library(reshape2)
 library(patchwork)
@@ -58,7 +59,8 @@ library(ProjecTILs)
 
 # Download scRNA-seq data
 
-We can download the single-cell data directly from Gene Expression Omnibus (GEO).
+We can download the single-cell data for this study directly from Gene Expression Omnibus (GEO).
+
 ```{r, message=FALSE, warning=F, results=FALSE}
 Sys.setenv(R_REMOTES_NO_ERRORS_FROM_WARNINGS = "true")
 options(timeout = max(300, getOption("timeout")))
@@ -151,7 +153,7 @@ DimPlot(sample.list$isotype) | DimPlot(sample.list$PDL1_treated)
 
 # Load reference map
 
-The CD4+ T cell map is described in Andreatta et al. (2022), and can be downloaded from Figshare at: [doi.org/10.6084/m9.figshare.16592693.v2](https://figshare.com/articles/dataset/ref_LCMV_CD4_mouse_release_v1_rds/16592693/2)
+The CD4+ T cell map is described in [this paper](https://doi.org/10.7554/eLife.76339), and can be downloaded from Figshare at: [doi.org/10.6084/m9.figshare.16592693.v2](https://figshare.com/articles/dataset/ref_LCMV_CD4_mouse_release_v1_rds/16592693/2)
 
 You can also use the commands below to download the atlas directly within R, and load it into memory.
 
@@ -242,7 +244,7 @@ EnhancedVolcano(deg, lab = rownames(deg),x = 'avg_log2FC', y = 'p_val', pCutoff 
                  title = 'Anti-PD-L1 vs. Isotype (Th1_Effector)')
 ```
 
-We observe that Th1 effector cells after anti-PD-L1 treatment upregulated a Th1-associated gene module that includes Klrd1, Plac8, Ctla2a and Ly6c2. This observation, together with the amplification of Th1 effectors upon treatment, confirm the finding of the original study by Snell et al. (2021). 
+We observe that Th1 effector cells after anti-PD-L1 treatment upregulated a Th1-associated gene module that includes Klrd1, Plac8, Ctla2a and Ly6c2. This observation, together with the amplification of Th1 effectors upon treatment, confirm the findings of the original study by Snell et al. (2021). 
 
 # Further reading
 
