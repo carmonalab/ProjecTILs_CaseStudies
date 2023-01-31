@@ -140,6 +140,33 @@ b <- DimPlot(ref.cd4, cols=ref.cd4@misc$atlas.palette, label = T) +
 a | b
 ```
 
+Show key marker genes for the reference subtypes
+```{r fig.height=10, fig.width=6.5}
+DefaultAssay(ref.cd8) <- "RNA"
+
+genes <- c("SELL","TCF7","LEF1","CCR7","S1PR1","LMNA","IL7R","GZMK",
+           "FGFBP2",'FCGR3A','XCL1',"XCL2","CD200","CRTAM","GNG4","TOX",'PDCD1',"HAVCR2",
+           "GZMB","PRF1","LAG3",'KLRB1','TRAV1-2')
+
+a <- VlnPlot(ref.cd8, features = genes, stack = TRUE, flip = TRUE,
+             fill.by = "ident", cols = ref.cd8@misc$atlas.palette) +
+             NoLegend()
+DefaultAssay(ref.cd8) <- "integrated"
+
+DefaultAssay(ref.cd4) <- "RNA"
+Idents(ref.cd4) <- "functional.cluster"
+
+genes <- c("SELL","TCF7","S1PR1","KLF2","IL7R","CCL5","GZMK","EOMES",
+           "TBX21","CXCR6","GZMA","GZMB","PRF1","GNLY",
+           "CXCL13","PDCD1","TOX","LAG3","HAVCR2","KLRB1","IL17A","FOXP3","IL2RA")
+
+b <- VlnPlot(ref.cd4, features = genes, stack = TRUE,flip = TRUE,
+             fill.by = "ident", cols = ref.cd4@misc$atlas.palette) +
+             NoLegend()
+DefaultAssay(ref.cd4) <- "integrated"
+
+a | b
+```
 
 ## Reference-based analysis
 
