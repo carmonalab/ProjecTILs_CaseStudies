@@ -28,11 +28,8 @@ A case study of projection of virus-specific CD4+ T cells in late acute infectio
 
 Projection of tumor-specific T cells on a viral reference, illustrating how one can interpret subtypes not represented in the reference.
 
-# 6. [Detecting novel/unrepresented cell states](https://carmonalab.github.io/ProjecTILs_CaseStudies/novelstate.html)
 
-Projection of tumor-specific T cells on a viral reference, illustrating how one can interpret subtypes not represented in the reference.
-
-# 7. [Effect of anti-PD-L1 therapy on CD4+ T cells](https://carmonalab.github.io/ProjecTILs_CaseStudies/Snell.html)
+## 7. [Effect of anti-PD-L1 therapy on CD4+ T cells](https://carmonalab.github.io/ProjecTILs_CaseStudies/Snell.html)
 
 Analysing the transcriptional phenotype of CD4+ T cells in chronic infection after treatment with an anti-PD-L1 antibody.
 
