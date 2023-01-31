@@ -121,7 +121,7 @@ table(data.seurat$patient_id)
 
 ## Load reference maps
 
-Here we will project the query data onto human reference TIL atlas for CD4 and CD8 T cells, with the goal to interpret cell states in the context of reference T cell subtypes. First, load the reference maps:
+Here we will project the query data onto human reference TIL atlas for CD4 and CD8 T cells, with the goal to interpret T cell diversity in the context of reference T cell subtypes. First, load the reference maps:
 ```{r fig.height=4, fig.width=9}
 options(timeout = max(900, getOption("timeout")))
 
@@ -216,7 +216,7 @@ data.seurat$functional.cluster <- factor(data.seurat$functional.cluster,
 ```
 
 
-Compare responders vs. non-responders (based on clonal expansion) on pre-therapy samples
+Compare subtype composition of responders vs. non-responders (based on clonal expansion) on pre-therapy samples
 ```{r fig.height=4, fig.width=6.5}
 a <- ref.cd8@misc$atlas.palette
 b <- ref.cd4@misc$atlas.palette
@@ -250,9 +250,9 @@ p2 <- ggplot(tb.m, aes(x = Cell_state, y = Perc_cells,
 p1 | p2
 ```
 
-The analysis shows that ICB-responding tumors have a higher proportion of CD8 exhausted (CD8.TEX), CD8 precursor exhausted (CD8.TPEX) and CD4 cytotoxic exhausted (CD4.CTL_Exh) T cells; and a decrease in CD4 Naive-like and CD8 TEMRA.
+The analysis shows that ICB-responding tumors have a higher proportion of CD8 exhausted (CD8.TEX), CD8 precursor exhausted (CD8.TPEX) and CD4 cytotoxic exhausted (CD4.CTL_Exh) T cells; on the other hand, CD4 Naive-like and CD8 TEMRA are more abundant in non-responders.
 
-A more compact way of displaying enrichment/depletion of specific subtype is to calculate and visualize **fold-changes** of TIL composition in **responders vs non-responders**
+A more compact way of displaying enrichment/depletion of specific subtypes is to calculate and visualize **fold-changes** of TIL composition in **responders vs non-responders**
 
 ```{r fig.height=3.5, fig.width=5}
 which.types <- table(data.seurat$functional.cluster) > 100  # disregard small populations
@@ -278,11 +278,12 @@ ggplot(tb.m, aes(x = Cell_state, y = Fold_change, fill = Cell_state)) +
   ggtitle("Responders vs. Non-responders")
 ```
 
-Tumors in ICB-responders have a >8 fold-change increase in **CD4 exhausted CTL** and a ~2 fold-change increase in both **Tpex** and **Tex*.
+Tumors in ICB-responders have a >10 fold-change increase in **CD4 exhausted CTL** and a ~2-3 fold-change increase in both **Tpex** and **Tex*.
 
 # Correspondence analysis of subtype composition
 
 Do patients cluster based on their subtype composition? are subtype composition "classes" related to response to ICB? we can perform correspondence analysis (CA) to try to answer these questions, and group patients based on their composition of T cell subtypes.
+
 ```{r fig.width=12, fig.height=7}
 library("FactoMineR")
 min.cells <- 30
