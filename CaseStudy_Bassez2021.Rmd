@@ -171,7 +171,7 @@ a | b
 
 ## Reference-based analysis
 
-To classify CD4 and CD8 T cell subtypes, we will project CD4 and CD8 T cells separately into the two reference maps. Running `ProjecTILs.classifier` sequentially on the two maps with the parameter `overwrite=FALSE` allows combining the subtype predictions for a complete annotation of T cells subtypes.
+To classify CD4 and CD8 T cell subtypes, we will project CD4 and CD8 T cells separately into the two reference maps. Running `ProjecTILs.classifier` sequentially on the two maps allows combining the subtype predictions for a complete annotation of T cells subtypes.
 
 For optimal batch-effect correction, we recommend projecting each patient/batch separately (set `split.by="patient_id"`). For large samples, `Run.ProjecTILs` can take several minutes. Set the number of parallel jobs with *ncores* according to your computational resources.
 
@@ -182,6 +182,12 @@ data.seurat <-  ProjecTILs.classifier(data.seurat, ref.cd8,
                                   ncores=ncores, split.by = "patient_id")
 ```
 
+After running the classifier with the CD8T reference, we obtain CD8 T cell subtype annotations:
+```{r}
+table(data.seurat$functional.cluster, useNA="ifany")
+```
+
+We can now run the classifier on the same object with the CD4 T reference, specifying the parameter `overwrite=FALSE`. This adds labels for the CD4 T cells without replacing the CD8 T cell subtypes. Note that only cells that can be unequivocally assigned to one cell type are labeled; the remaining cells (including those that receive a label by more than one reference) are assigned to NA.
 ```{r}
 #Classify CD4 T subtypes
 data.seurat <-  ProjecTILs.classifier(data.seurat, ref.cd4,
@@ -189,6 +195,10 @@ data.seurat <-  ProjecTILs.classifier(data.seurat, ref.cd4,
                                   overwrite = FALSE)
 ```
 
+The labels now contain both CD4T and CD8T subtypes:
+```{r}
+table(data.seurat$functional.cluster, useNA="ifany")
+```
 
 
 
