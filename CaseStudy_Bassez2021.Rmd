@@ -84,6 +84,7 @@ rownames(meta1) <- meta1$Cell
 head(meta1)
 
 data.seurat <- CreateSeuratObject(cohort1, project="Cohort1_IT", meta.data = meta1)
+data.seurat <- NormalizeData(data.seurat)
 
 ```
 
@@ -170,76 +171,34 @@ a | b
 
 ## Reference-based analysis
 
-We will project CD4 and CD8 T cells separately into the two reference maps, then combine the results for a complete annotation of T cells subtypes. For optimal batch-effect correction, we recommend projecting each patient/batch separately (set `split.by="patient_id"`).
+To classify CD4 and CD8 T cell subtypes, we will project CD4 and CD8 T cells separately into the two reference maps. Running `ProjecTILs.classifier` sequentially on the two maps with the parameter `overwrite=FALSE` allows combining the subtype predictions for a complete annotation of T cells subtypes.
 
-For large samples, `Run.ProjecTILs` can take several minutes. Set the number of parallel jobs with *ncores* according to your computational resources.
+For optimal batch-effect correction, we recommend projecting each patient/batch separately (set `split.by="patient_id"`). For large samples, `Run.ProjecTILs` can take several minutes. Set the number of parallel jobs with *ncores* according to your computational resources.
 
 ```{r}
+#Classify CD8 T subtypes
 ncores=8
-cd4.projected <-  Run.ProjecTILs(data.seurat, ref.cd4, ncores=ncores, split.by = "patient_id")
+data.seurat <-  ProjecTILs.classifier(data.seurat, ref.cd8,
+                                  ncores=ncores, split.by = "patient_id")
 ```
 
 ```{r}
-cd8.projected <-  Run.ProjecTILs(data.seurat, ref.cd8, ncores=ncores, split.by = "patient_id")
+#Classify CD4 T subtypes
+data.seurat <-  ProjecTILs.classifier(data.seurat, ref.cd4,
+                                  ncores=ncores, split.by = "patient_id",
+                                  overwrite = FALSE)
 ```
 
 
 
-See projected cells for two selected patients, projected onto the reference maps
-```{r fig.height=7, fig.width=11}
-s1 <- subset(cd4.projected, subset=patient_id=="BIOKEY_13")
-a <- plot.projection(ref.cd4, query=s1,
-                     linesize = 0.5, pointsize = 0.2) + ggtitle("Patient 13 - CD4 T")
-
-s2 <- subset(cd8.projected, subset=patient_id=="BIOKEY_13")
-b <- plot.projection(ref.cd8, query=s2,
-                     linesize = 0.5, pointsize = 0.2) + ggtitle("Patient 13 - CD8 T")
-
-s3 <- subset(cd4.projected, subset=patient_id=="BIOKEY_10")
-c <- plot.projection(ref.cd4, query=s3,
-                     linesize = 0.5, pointsize = 0.2) + ggtitle("Patient 10 - CD4 T")
-
-s4 <- subset(cd8.projected, subset=patient_id=="BIOKEY_10")
-d <- plot.projection(ref.cd8, query=s4,
-                     linesize = 0.5, pointsize = 0.2) + ggtitle("Patient 10 - CD8 T")
-
-(a | b) / (c | d)
-```
 
 We can verify the expression profile using a panel of marker genes
 ```{r fig.height=9, fig.width=13}
 genes4radar <- c("CD4","CD8A","TCF7","CCR7","IL7R","LMNA","GZMA","GZMK","FGFBP2","XCL1",
                  "CRTAM","TOX","PDCD1","HAVCR2","PRF1","GLNY","GZMB","TRAV1-2","KLRB1","FOXP3")
 
-
-plot.states.radar(ref=ref.cd8, query=cd8.projected, genes4radar = genes4radar)
-plot.states.radar(ref=ref.cd4, query=cd4.projected, genes4radar = genes4radar)
-
-```
-
-Combine CD4 and CD8 T cell annotations in one set of cell type labels
-```{r}
-data.seurat$functional.cluster.cd4 <- NA
-data.seurat@meta.data[colnames(cd4.projected),"functional.cluster.cd4"] <- cd4.projected$functional.cluster
-
-data.seurat$functional.cluster.cd8 <- NA
-data.seurat@meta.data[colnames(cd8.projected),"functional.cluster.cd8"] <- cd8.projected$functional.cluster
-
-annos <- data.seurat@meta.data[,c("functional.cluster.cd4","functional.cluster.cd8")]
-
-consensus <- apply(annos, 1, function(x){
-  if (is.na(x[['functional.cluster.cd4']]) & !is.na(x[['functional.cluster.cd8']])) {
-    x[['functional.cluster.cd8']]
-  } else if (is.na(x[['functional.cluster.cd8']]) & !is.na(x[['functional.cluster.cd4']])) {
-    x[['functional.cluster.cd4']]
-  } else {
-    NA
-  }
-})
-
-data.seurat$functional.cluster <- consensus
-data.seurat$functional.cluster <- factor(data.seurat$functional.cluster,
-                                            levels=unique(data.seurat$functional.cluster))
+plot.states.radar(ref=ref.cd8, query=data.seurat, genes4radar = genes4radar)
+plot.states.radar(ref=ref.cd4, query=data.seurat, genes4radar = genes4radar)
 ```
 
 
@@ -305,7 +264,7 @@ ggplot(tb.m, aes(x = Cell_state, y = Fold_change, fill = Cell_state)) +
   ggtitle("Responders vs. Non-responders")
 ```
 
-Tumors in ICB-responders have a >10 fold-change increase in **CD4 exhausted CTL** and a ~2-3 fold-change increase in both **Tpex** and **Tex*.
+Tumors in ICB-responders have a >10 fold-change increase in **CD4 exhausted CTL** and a ~2-3 fold-change increase in both **Tpex** and **Tex**.
 
 # Correspondence analysis of subtype composition
 
