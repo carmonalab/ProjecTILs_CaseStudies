@@ -63,3 +63,6 @@ Projection of tumor-specific T cells on a viral reference, illustrating how one 
 
 Analysing the transcriptional phenotype of CD4+ T cells in chronic infection after treatment with an anti-PD-L1 antibody.
 
+# 8. [Exploring dendritic cell diversity in human spleen](Brown2019_humanDC.html)
+
+Projection of human DCs from spleen from the study of Brown et al. 2019
