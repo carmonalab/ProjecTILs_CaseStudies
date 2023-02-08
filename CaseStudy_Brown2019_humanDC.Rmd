@@ -183,7 +183,7 @@ Here we verify that spleen is largely enriched in cDC2_CLEC10A, cDC1 and AS-DC (
 
 
 We can visually inspect marker gene profiles in query data vs. reference map, for each DC subtype:
-```{r fig.height=10}
+```{r fig.height=12, fig.width=12}
 genes4radar <-  c("CLEC9A","XCR1","CADM1","CLEC10A","FCGR2A","FCER1A","CD1C","CD1A","CD207",
                  "LAMP3","CCR7","FSCN1","GZMB","LILRA4","TCF4","PPP1R14A","AXL",
            "S100A8","S100A9","VCAN","FCN1","ITGAX","HLA-DRA", "HLA-DQA1","HLA-DQB1")
@@ -202,7 +202,7 @@ brown.projected <- Run.ProjecTILs(brown.seurat, ref=ref_DC, filter.cells = F)
 ```
 
 
-```{r fig.height=8}
+```{r fig.height=10, fig.width=16}
 original.annotation <- unique(brown.projected$cell_type)
 pll <- list()
 
@@ -215,6 +215,6 @@ wrap_plots(pll, ncol=4)
 ```
 We can verify a large agreement of original authors annotations and the area of the map where cells were projected. Interestingly, "Mitotic cDC1" and "Mitotic cDC2" were projected within the cDC1 and cDC2 clusters, respectively, irrespective of their proliferation activity. Instead, cells originally annotated as "CCR7+ cDC2" correspond, according to ProjecTILs, to a mix of DC3 (as shown above) and DC2s.
 
-Overall, this analysis supports a consistent classification of DC subtypes by ProjecTILs.
+Overall, this analysis supports a consistent classification of spleen DC subtypes by ProjecTILs.
 
 
