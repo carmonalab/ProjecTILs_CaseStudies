@@ -317,11 +317,9 @@ a | b
 
 # Discussion
 
-Our automated ProjecTILs analysis of this patient cohort indicate that compared to non-responders, early responders to PD-1 blockade (in terms of T cell expansion) have higher relative amounts of exhausted T cells (both CD8+ and CD4+) infiltrating their tumors, in agreement with previous studies (Daud et al. 2016; Thommen et al. 2018; Kumagai et al. 2020; Bassez et al. 2020).  This supports the notion that patients with a pre-existing tumor-specific CD8 T cell response in their tumors are more likely to respond to PD-1 blockade therapy. 
+Our automated ProjecTILs analysis of this patient cohort indicate that compared to non-responders, early responders to PD-1 blockade (in terms of T cell expansion) have higher relative amounts of exhausted T cells (both CD8+ and CD4+) infiltrating their tumors, in agreement with previous studies (Daud et al. 2016; Thommen et al. 2018; Kumagai et al. 2020; Bassez et al. 2020).  This supports the notion that patients with a pre-existing tumor-specific T cell response in their tumors are more likely to respond to PD-1 blockade therapy. 
 
 Because tumoricidal CD8 Tex are derived from Tpex (Siddiqui et al. 2019; Miller et al. 2019), the presence of CD8 Tex seems to be a good proxy for the presence of smaller populations of quiescent Tpex, that have the ability to proliferate and differentiate into Tex cells following PD-1 blockade (Siddiqui et al. 2019; Miller et al. 2019). Indeed we observed a small population of Tpex-like cells, with increased levels R vs RN. Because there are very few Tpex their gene profile might be less robust than others, but compared to Tex they display higher levels of Tpex-associated genes, such as *XCL1* and *CD200*, and lower levels of terminal-exhaustion markers such as *HAVCR2* and *ENTPD1*.
-
-In their study, Bassez et al. also observed increased levels in R vs NR of a population they referred to as exhausted CD4 T cells. Here we observed also a trend for increased levels of follicular-helper CD4 T cells, that display exhaustion features (*e.g. TOX*, *PDCD1*, *ENTPD1* expression), although the most prominent enrichment in ICB-responders is for exhausted *CD8* T cells.
 
 # Further reading
 
