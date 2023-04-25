@@ -229,7 +229,7 @@ p1 <- ggplot(tb.m, aes(x = Cell_state, y = Perc_cells,
             fill = Cell_state)) + geom_bar(stat = "identity") + 
             theme_bw() + scale_fill_manual(values = cols) +
             theme(axis.text.x = element_blank(), legend.position = "none") +
-            ggtitle("Responders") + ylim(0,40)
+            ggtitle("Responders") + ylim(0,50)
 
 
 tb <-  table(factor(by.exp$NE$functional.cluster, levels = names(cols)))
@@ -241,7 +241,7 @@ p2 <- ggplot(tb.m, aes(x = Cell_state, y = Perc_cells,
             fill = Cell_state)) + geom_bar(stat = "identity") + 
             theme_bw() + scale_fill_manual(values = cols) +
             theme(axis.text.x = element_blank(), legend.position = "right") +
-            ggtitle("Non-Responders") + ylim(0,40)
+            ggtitle("Non-Responders") + ylim(0,50)
 
 p1 | p2
 ```
@@ -274,7 +274,7 @@ ggplot(tb.m, aes(x = Cell_state, y = Fold_change, fill = Cell_state)) +
   ggtitle("Responders vs. Non-responders")
 ```
 
-Tumors in ICB-responders have a >10 fold-change increase in **CD4 exhausted CTL** and a ~2-3 fold-change increase in both **Tpex** and **Tex**.
+Tumors in ICB-responders have a >10 fold-change increase in **CD4 exhausted CTL** and a ~4-8 fold-change increase in both **Tpex** and **Tex**.
 
 # Correspondence analysis of subtype composition
 

@@ -56,8 +56,9 @@ library(renv)
 renv::restore()
 
 library(ggplot2)
+library(patchwork)
 library(reshape2)
-library(gridExtra)
+library(Seurat)
 library(ProjecTILs)
 ```
 
@@ -102,15 +103,10 @@ query.merged <- AddMetaData(query.merged, metadata = percent.mito.dv, col.name =
 
 ```{r stats2}
 Idents(query.merged) <- "Tissue"
-pl <- VlnPlot(query.merged , features = c("nFeature_RNA","nCount_RNA","percent.ribo","percent.mito"), 
-              ncol = 2, pt.size=0.001, combine=FALSE, split.by = "Tissue")
+VlnPlot(query.merged, features = c("nFeature_RNA","nCount_RNA","percent.ribo","percent.mito"), 
+              ncol = 2, pt.size=0.001, split.by = "Tissue") & theme(axis.text.x = element_blank())
 
-pll <- list()
-for (i in seq_along(pl)) {
-   pll[[i]] = pl[[i]] + theme(axis.text.x = element_blank())
-}
 
-plot(do.call("arrangeGrob", c(pll, ncol=2)))
 ```
 
 
@@ -129,6 +125,7 @@ Save the *ref_LCMV_Atlas_mouse_v1.rds* object in your working directory, and the
 
 ```{r load.reference}
 ref <- load.reference.map("ref_LCMV_Atlas_mouse_v1.rds")
+DefaultAssay(ref) <- "integrated"
 
 # reproduce cluster colors
 library(scales)
@@ -137,13 +134,14 @@ functional.cluster.colors <- functional.cluster.colors[c(4,3,2,5,1,6,7)]
 names(functional.cluster.colors) <- levels(ref$functional.cluster)
 
 
-DimPlot(ref, reduction = "umap", label = TRUE, pt.size = 0.5, group.by = "functional.cluster", dims = c(2,1),
+DimPlot(ref, reduction = "umap", label = TRUE, pt.size = 0.5,
+        group.by = "functional.cluster", dims = c(2,1),
         cols = functional.cluster.colors) + NoLegend() + theme(aspect.ratio = 1) +
         scale_x_reverse() + scale_y_reverse() + ggtitle("Reference CD8 LCMV atlas")
 
 ```
 
-An interactive version of the reference atlas can also be explored at [http://virustcellatlas.unil.ch/](http://virustcellatlas.unil.ch/)
+An interactive version of the reference map can also be explored at [https://spica.unil.ch/refs/viral-CD8-T](https://spica.unil.ch/refs/viral-CD8-T)
 
 **Optional:** to speed up computation (and if our machine has large enough memory), we can run projection in parallel for individual samples, by setting the parameter `ncores` to the number of parallel processes. We will also have to tell `future` that we need more memory:
 
@@ -158,7 +156,7 @@ Now we have loaded the query samples in a Seurat object, and an atlas object to 
 ```{r message=F, warning=F, results=F}
 querydata <- SplitObject(query.merged, split.by = "Tissue")
 #For serial processing, just set ncores=1
-query.projected <- make.projection(querydata, ref=ref, ncores=ncores)
+query.projected <- Run.ProjecTILs(querydata, ref=ref, filter.cells = F, ncores=ncores)
 ```
 
 ## Tissue-specific T cell state composition
@@ -168,12 +166,10 @@ We can inspect how the cells from different tissues distribute across the map.
 pll <- list()
 for (i in seq_along(query.projected)) {
    s <- names(query.projected)[i]
-   query.projected[[s]] <- cellstate.predict(ref=ref, query=query.projected[[s]])
    pll[[i]] <- plot.projection(ref, query.projected[[s]], pointsize = 0.3, linesize = 0.3, cols=functional.cluster.colors)  + 
       theme_bw() + theme(aspect.ratio = 0.8) + scale_x_reverse() + scale_y_reverse() + coord_flip() + NoLegend() + ggtitle(s)
 }
-g <- do.call("arrangeGrob", c(pll, ncol=3))
-plot(g)
+wrap_plots(pll, ncol=3)
 ```
 
 We can already surmise that cells from different tissues occupy diverse areas of the reference atlas. More quantitavely, we can calculate the fraction of cells assigned into each T cell subtype for different tissues:
@@ -191,7 +187,7 @@ for (i in seq_along(query.projected)) {
    m[i,] <- tb * 100/sum(tb)
 }
 
-melt <- melt(m)
+melt <- reshape2::melt(m)
 colnames(melt) <- c("Tissue", "Cell_state","Percent")
 
 p <- ggplot(melt, aes(x = Tissue, y = Percent, fill = Cell_state)) + geom_bar(stat = "identity", position = "stack") + 
@@ -224,14 +220,14 @@ library(EnhancedVolcano)
 
 deg <- find.discriminant.genes(ref, query.projected[["Blood"]], query.control=query.projected[["Spleen"]], 
                               state="SLEC", min.pct = 0.1, logfc.threshold = 0.1, query.assay = "RNA")
-EnhancedVolcano(deg, lab = rownames(deg),x = 'avg_log2FC', y = 'p_val', pCutoff = 10e-10, FCcutoff = 0.5, labSize = 5,
+EnhancedVolcano(deg, lab = rownames(deg),x = 'avg_log2FC', y = 'p_val', pCutoff = 10e-10, FCcutoff = 0.25, labSize = 5,
                 legendPosition = 'none', drawConnectors = F,
                  title = 'Blood vs. Spleen (SLEC)')
 
 
 
 deg2 <- find.discriminant.genes(ref, query.projected[["Liver"]], query.control=query.projected[["Spleen"]], state="Tex", min.pct = 0.1, logfc.threshold = 0.1)
-EnhancedVolcano(deg2, lab = rownames(deg2),x = 'avg_log2FC', y = 'p_val', pCutoff = 10e-10, FCcutoff = 0.5, labSize = 5,
+EnhancedVolcano(deg2, lab = rownames(deg2),x = 'avg_log2FC', y = 'p_val', pCutoff = 10e-10, FCcutoff = 0.25, labSize = 5,
                 legendPosition = 'none', drawConnectors = F,
                  title = 'Liver vs. Spleen (Tex)')
 
