@@ -1,5 +1,5 @@
 ---
-title: Exhausted CD8 T cells are associated with ICB responsiveness in breast cancer
+title: Intratumoral T cell and DC composition associated with ICB responsiveness in breast cancer
 date: "`r Sys.Date()`"
 author: "M. Andreatta and S. Carmona"
 output:
@@ -227,26 +227,46 @@ plot.states.radar(ref=ref.cd8, query=data.seurat, genes4radar = genes4radar)
 plot.states.radar(ref=ref.cd4, query=data.seurat, genes4radar = genes4radar)
 ```
 
-
 We can now run the classifier on the same object for the DC reference
 ```{r}
-#Classify CD4 T subtypes
-data.seurat <-  ProjecTILs.classifier(data.seurat, ref.dc,
-                                  ncores=ncores, split.by = "patient_id",
+#Classify DC subtypes
+
+#data.seurat <-  ProjecTILs.classifier(data.seurat, ref.dc,
+#                                  ncores=ncores, split.by = "patient_id",
+#                                  overwrite = FALSE)
+
+# wrapper not working in the case where split.by generates a null (e.g. all cells filtered); instead split before and provide object list 
+
+data.seurat.list <- SplitObject(data.seurat, split.by = "patient_id")
+
+for (i in names(data.seurat.list)) {
+  data.seurat.list[[i]] <- ProjecTILs.classifier(data.seurat.list[[i]], ref.dc,
+                                  ncores=1, split.by = "patient_id",
                                   overwrite = FALSE)
-
-#Get scGate database of pre-defined gating models
-scGate_models_DB <- get_scGateDB()
-
-#For example, filter abT cells using one of scGate pre-defined gating models
-data.seurat.2 <- scGate(data.seurat, model = scGate_models_DB$human$generic$panDC)
+}
 ```
+
+
+```{r, eval=F}
+data.seurat.list <- mclapply(data.seurat.list,
+     FUN = function(x) {
+        ProjecTILs.classifier(x, ref.dc,
+                                  ncores=1, split.by = "patient_id",
+                                  overwrite = FALSE)
+     }, mc.cores = 6)
+  
+```
+
+
+```{r}
+data.seurat <- merge(data.seurat.list[[1]],data.seurat.list[2:length(data.seurat.list)])
+```
+
 
 The labels now contain CD4T, CD8T, and DC subtypes:
 ```{r}
 table(data.seurat$functional.cluster, useNA="ifany")
 ```
-
 
 
 We can verify the expression profile using a panel of marker genes
@@ -255,6 +275,7 @@ genes4radar <- c("CD4","CD8A","TCF7","CCR7","IL7R","GZMA","GZMK","GZMB","PRF1","
 
 plot.states.radar(ref=ref.cd8, query=data.seurat, genes4radar = genes4radar)
 plot.states.radar(ref=ref.cd4, query=data.seurat, genes4radar = genes4radar)
+plot.states.radar(ref=ref.dc, query=data.seurat, genes4radar = genes4radar)
 ```
 
 
@@ -262,7 +283,8 @@ Compare subtype composition of responders vs. non-responders (based on clonal ex
 ```{r fig.height=4, fig.width=6.5}
 a <- ref.cd8@misc$atlas.palette
 b <- ref.cd4@misc$atlas.palette
-cols <- c(a,b)
+c <- ref.dc@misc$atlas.palette
+cols <- c(a,b,c)
 
 by.exp <- SplitObject(data.seurat, split.by = "expansion")
 
@@ -297,7 +319,7 @@ The analysis shows that ICB-responding tumors have a higher proportion of CD8 ex
 A more compact way of displaying enrichment/depletion of specific subtypes is to calculate and visualize **fold-changes** of TIL composition in **responders vs non-responders**
 
 ```{r fig.height=3.5, fig.width=5}
-which.types <- table(data.seurat$functional.cluster) > 100  # disregard small populations
+which.types <- table(data.seurat$functional.cluster) > 20  # disregard small populations
 
 states_all <- names(cols)
 
@@ -312,12 +334,14 @@ foldchange <- sort(foldchange, decreasing = T)
 tb.m <- reshape2::melt(foldchange)
 colnames(tb.m) <- c("Cell_state", "Fold_change")
 pll <- list()
-ggplot(tb.m, aes(x = Cell_state, y = Fold_change, fill = Cell_state)) +
+gg <- ggplot(tb.m, aes(x = Cell_state, y = Fold_change, fill = Cell_state)) +
   geom_bar(stat = "identity") +
     scale_fill_manual(values = cols_use) + theme_bw() +
   geom_hline(yintercept = 1) + scale_y_continuous(trans = "log2") +
     theme(axis.text.x = element_blank(), legend.position = "left") +
   ggtitle("Responders vs. Non-responders")
+
+gg
 ```
 
 Tumors in ICB-responders have a >10 fold-change increase in **CD4 exhausted CTL** and a ~4-8 fold-change increase in both **Tpex** and **Tex**.
@@ -337,6 +361,7 @@ data.seurat <- subset(data.seurat, subset = patient_id %in% samples.use)
 
 subtype_comp_table <- prop.table(table(data.seurat$functional.cluster,
                                        data.seurat$patient_id), margin = 2)
+subtype_comp_table[is.na(subtype_comp_table)] <- 0
 res.CA <- CA(t(subtype_comp_table), graph = FALSE)
 a <- plot(res.CA) + theme(aspect.ratio = 1) 
 
