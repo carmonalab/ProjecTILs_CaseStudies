@@ -53,11 +53,15 @@ To compare the T cell and DC subtype composition between responders and non-resp
 library(renv)
 renv::restore()
 
+library(remotes)
 library(patchwork)
 library(ggplot2)
 library(reshape2)
 library(Seurat)
 library(ProjecTILs)
+library(parallel)
+
+#remotes::install_github("carmonalab/ProjecTILs",ref="9e55c097d191deb5c75bbb316b7495621e205c08")
 ```
 
 # scRNA-seq data preparation
@@ -191,69 +195,65 @@ To classify CD4 and CD8 T cell subtypes, we will project CD4 and CD8 T cells sep
 
 For optimal batch-effect correction, we recommend projecting each patient/batch separately (set `split.by="patient_id"`). For large samples, `Run.ProjecTILs` can take several minutes. Set the number of parallel jobs with *ncores* according to your computational resources.
 
+
 ```{r}
-#Classify CD8 T subtypes
+data.seurat.list <- SplitObject(data.seurat, split.by = "patient_id")
+
+```
+
+```{r}
 ncores=8
+
+#Classify CD8 T subtypes
+
+data.seurat.list <- mclapply(data.seurat.list,
+     FUN = function(x) {
+        ProjecTILs.classifier(x, ref.cd8, ncores=1)
+     }, mc.cores = ncores)
+  
+```
+
+```{r, eval=F}
+#Classify CD8 T subtypes
 data.seurat <-  ProjecTILs.classifier(data.seurat, ref.cd8,
                                   ncores=ncores, split.by = "patient_id")
 ```
 
 After running the classifier with the CD8T reference, we obtain CD8 T cell subtype annotations:
 ```{r}
-table(data.seurat$functional.cluster, useNA="ifany")
+table(data.seurat.list[[1]]$functional.cluster, useNA="ifany")
 ```
 
 We can now run the classifier on the same object with the CD4 T reference, specifying the parameter `overwrite=FALSE`. This adds labels for the CD4 T cells without replacing the CD8 T cell subtypes. Note that only cells that can be unequivocally assigned to one cell type are labeled; the remaining cells (including those that receive a label by more than one reference) are assigned to NA.
+
+
 ```{r}
-#Classify CD4 T subtypes
-data.seurat <-  ProjecTILs.classifier(data.seurat, ref.cd4,
-                                  ncores=ncores, split.by = "patient_id",
+data.seurat.list <- mclapply(data.seurat.list,
+     FUN = function(x) {
+        ProjecTILs.classifier(x, ref.cd4,
+                                  ncores=1, 
                                   overwrite = FALSE)
+     }, mc.cores = ncores)
+  
 ```
+
 
 The labels now contain both CD4T and CD8T subtypes:
 ```{r}
-table(data.seurat$functional.cluster, useNA="ifany")
+table(data.seurat.list[[1]]$functional.cluster, useNA="ifany")
 ```
 
-
-
-We can verify the expression profile using a panel of marker genes
-```{r fig.height=9, fig.width=13}
-genes4radar <- c("CD4","CD8A","TCF7","CCR7","IL7R","LMNA","GZMA","GZMK","FGFBP2","XCL1",
-                 "CRTAM","TOX","PDCD1","HAVCR2","PRF1","GLNY","GZMB","TRAV1-2","KLRB1","FOXP3")
-
-plot.states.radar(ref=ref.cd8, query=data.seurat, genes4radar = genes4radar)
-plot.states.radar(ref=ref.cd4, query=data.seurat, genes4radar = genes4radar)
-```
 
 We can now run the classifier on the same object for the DC reference
+
+
 ```{r}
-#Classify DC subtypes
-
-#data.seurat <-  ProjecTILs.classifier(data.seurat, ref.dc,
-#                                  ncores=ncores, split.by = "patient_id",
-#                                  overwrite = FALSE)
-
-# wrapper not working in the case where split.by generates a null (e.g. all cells filtered); instead split before and provide object list 
-
-data.seurat.list <- SplitObject(data.seurat, split.by = "patient_id")
-
-for (i in names(data.seurat.list)) {
-  data.seurat.list[[i]] <- ProjecTILs.classifier(data.seurat.list[[i]], ref.dc,
-                                  ncores=1, split.by = "patient_id",
-                                  overwrite = FALSE)
-}
-```
-
-
-```{r, eval=F}
 data.seurat.list <- mclapply(data.seurat.list,
      FUN = function(x) {
         ProjecTILs.classifier(x, ref.dc,
-                                  ncores=1, split.by = "patient_id",
+                                  ncores=1, 
                                   overwrite = FALSE)
-     }, mc.cores = 6)
+     }, mc.cores = ncores)
   
 ```
 
@@ -269,7 +269,20 @@ table(data.seurat$functional.cluster, useNA="ifany")
 ```
 
 
+
+
 We can verify the expression profile using a panel of marker genes
+
+This one is tailored for T cells
+```{r fig.height=9, fig.width=13, eval-F}
+genes4radar <- c("CD4","CD8A","TCF7","CCR7","IL7R","LMNA","GZMA","GZMK","FGFBP2","XCL1",
+                 "CRTAM","TOX","PDCD1","HAVCR2","PRF1","GLNY","GZMB","TRAV1-2","KLRB1","FOXP3")
+
+plot.states.radar(ref=ref.cd8, query=data.seurat, genes4radar = genes4radar)
+plot.states.radar(ref=ref.cd4, query=data.seurat, genes4radar = genes4radar)
+```
+
+This one is a broader panel of marker genes for T cells and DCs
 ```{r fig.height=9, fig.width=13}
 genes4radar <- c("CD4","CD8A","TCF7","CCR7","IL7R","GZMA","GZMK","GZMB","PRF1","GLNY","XCL1", "CRTAM","TOX","PDCD1","HAVCR2","TRAV1-2","KLRB1","FOXP3","CLEC10A","CD1A","LAMP3","S100A9","AXL","HLA-DRA")
 
@@ -311,12 +324,19 @@ p2 <- ggplot(tb.m, aes(x = Cell_state, y = Perc_cells,
             theme(axis.text.x = element_blank(), legend.position = "right") +
             ggtitle("Non-Responders") + ylim(0,50)
 
-p1 | p2
+pp <- p1 | p2
+
+ggsave("plots/Bassez2021_barplots_RNR.pdf",width = 20, height = 10)
+
+pp <- (p1 | p2) & coord_cartesian(ylim=c(0, 2))
+
+pp
+
+ggsave("plots/Bassez2021_barplots_RNR_zoom5.pdf",width = 20, height = 10)
 ```
 
-The analysis shows that ICB-responding tumors have a higher proportion of CD8 exhausted (CD8.TEX), CD8 precursor exhausted (CD8.TPEX) and CD4 cytotoxic exhausted (CD4.CTL_Exh) T cells; on the other hand, CD4 Naive-like and CD8 TEMRA are more abundant in non-responders.
-
-A more compact way of displaying enrichment/depletion of specific subtypes is to calculate and visualize **fold-changes** of TIL composition in **responders vs non-responders**
+A more compact way of displaying enrichment/depletion of specific subtypes is to calculate and visualize **fold-changes** of TIL composition in **responders vs non-responders**.
+However, note that some frequencies are very small and might not differ significantly; more proper statistical analyses for differential cell type abundance are recommended.
 
 ```{r fig.height=3.5, fig.width=5}
 which.types <- table(data.seurat$functional.cluster) > 20  # disregard small populations
@@ -342,9 +362,12 @@ gg <- ggplot(tb.m, aes(x = Cell_state, y = Fold_change, fill = Cell_state)) +
   ggtitle("Responders vs. Non-responders")
 
 gg
+
+ggsave("plots/Bassez2021_barplots_RNR_foldchange.pdf",width = 10, height = 10)
 ```
 
-Tumors in ICB-responders have a >10 fold-change increase in **CD4 exhausted CTL** and a ~4-8 fold-change increase in both **Tpex** and **Tex**.
+The analysis suggests that ICB-responding tumors have a higher proportion of CD8 exhausted (CD8.TEX), CD8 precursor exhausted (CD8.TPEX), CD4 cytotoxic exhausted (CD4.CTL_Exh) T cells and a subtype of dendritic cells DC3 (characterized by expresssion of LAMP3, CCR7, IL7R); on the other hand, CD8 TEMRA, CD4 and CD8 Naive-like, DC2s (both CLEC10A and CD1A) and MonoDCs seem to be more abundant in non-responders.
+
 
 # Correspondence analysis of subtype composition
 
@@ -359,9 +382,8 @@ tab <- table(data.seurat$patient_id)
 samples.use <- names(tab)[tab>min.cells]
 data.seurat <- subset(data.seurat, subset = patient_id %in% samples.use)
 
-subtype_comp_table <- prop.table(table(data.seurat$functional.cluster,
-                                       data.seurat$patient_id), margin = 2)
-subtype_comp_table[is.na(subtype_comp_table)] <- 0
+subtype_comp_table <- table(data.seurat$functional.cluster,data.seurat$patient_id)
+
 res.CA <- CA(t(subtype_comp_table), graph = FALSE)
 a <- plot(res.CA) + theme(aspect.ratio = 1) 
 
@@ -384,13 +406,15 @@ b <- ggplot(coords, aes(x = `Dim 1`, y = `Dim 2`, color = Responder)) +
   ylim(min(coords.all[,'Dim 2']), max(coords.all[,'Dim 2']))
 
 a | b
+ggsave("plots/Bassez2021_CA.pdf",width = 20, height = 10)
+
 ```
 
 # Discussion
 
 Our automated ProjecTILs analysis of this patient cohort indicate that compared to non-responders, early responders to PD-1 blockade (in terms of T cell expansion) have higher relative amounts of exhausted T cells (both CD8+ and CD4+) infiltrating their tumors, in agreement with previous studies (Daud et al. 2016; Thommen et al. 2018; Kumagai et al. 2020; Bassez et al. 2020).  This supports the notion that patients with a pre-existing tumor-specific T cell response in their tumors are more likely to respond to PD-1 blockade therapy. 
 
-Because tumoricidal CD8 Tex are derived from Tpex (Siddiqui et al. 2019; Miller et al. 2019), the presence of CD8 Tex seems to be a good proxy for the presence of smaller populations of quiescent Tpex, that have the ability to proliferate and differentiate into Tex cells following PD-1 blockade (Siddiqui et al. 2019; Miller et al. 2019). Indeed we observed a small population of Tpex-like cells, with increased levels R vs RN. Because there are very few Tpex their gene profile might be less robust than others, but compared to Tex they display higher levels of Tpex-associated genes, such as *XCL1* and *CD200*, and lower levels of terminal-exhaustion markers such as *HAVCR2* and *ENTPD1*.
+Because tumoricidal CD8 Tex are derived from Tpex (Siddiqui et al. 2019; Miller et al. 2019), the presence of CD8 Tex seems to be a good proxy for the presence of smaller populations of quiescent Tpex, that have the ability to proliferate and differentiate into Tex cells following PD-1 blockade (Siddiqui et al. 2019; Miller et al. 2019). Indeed we observed a small population of Tpex with increased levels R vs RN. Because there are very few Tpex their gene profile might be less robust than others, but compared to Tex they display higher levels of Tpex-associated genes, such as *TCF7* and *XCL1*, and lower levels of terminal-exhaustion markers such as *HAVCR2* and *ENTPD1*.
 
 # Further reading
 
