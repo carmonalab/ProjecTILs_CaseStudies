@@ -373,7 +373,7 @@ The analysis suggests that ICB-responding tumors have a higher proportion of CD8
 
 # Exploratory subtype composition using Correspondence Analysis
 
-Do patients cluster based on their subtype composition? are subtype composition "classes" related to response to ICB? we can perform correspondence analysis (CA) to try to answer these questions, and group patients based on their composition of T cell subtypes.
+Do patients cluster based on their subtype composition? are subtype composition "classes" related to response to ICB? we can perform correspondence analysis (CA) to try to answer these questions, and group patients based on their composition of T cell and DC subtypes.
 
 ```{r fig.width=12, fig.height=7}
 library("FactoMineR")
@@ -436,6 +436,81 @@ ggsave("plots/Bassez2021_CA.pdf",width = 20, height = 10)
 ggsave("plots/Bassez2021_CA.png",width = 20, height = 10)
 
 ```
+
+This analysis suggests some interesting statistical associations such as a pattern enriched in CD8 TEX, CD8 TPEX, CD4 Treg and DC3,  and another pattern enriched in CD8 and CD4 Naive states and CD2.
+The comparison of absolute frequencies (i.e. including "other"/unclassified cells) vs. relative frequencies (over considered populations, here T cells and DCs) suggests that total immune infiltrate does not have a strong association with response. Rather, the relative composition of T cells and DC subtypes leads to a larger separation of R vs NR.
+
+
+# Exploratory subtype composition using Correspondence Analysis - per cell type
+
+
+```{r fig.width=12, fig.height=7}
+
+min.cells <- 30
+
+useNotAnnotatedCells = T
+normalizeCellCounts <- F
+
+#Only use samples with sufficient amount of cells
+tab <- table(data.seurat$patient_id)
+samples.use <- names(tab)[tab>min.cells]
+data.seurat <- subset(data.seurat, subset = patient_id %in% samples.use)
+
+useMap <- "ref.cd4"
+use.labels <- c(levels(get(useMap)$functional.cluster),NA)
+
+if(useNotAnnotatedCells){
+  if(normalizeCellCounts){
+    subtype_comp_table <- prop.table(table(data.seurat$functional.cluster[which(data.seurat$functional.cluster %in% use.labels)],
+                                       data.seurat$patient_id[which(data.seurat$functional.cluster %in% use.labels)],useNA="ifany"), margin = 2)
+  } else {
+    subtype_comp_table <- table(data.seurat$functional.cluster[which(data.seurat$functional.cluster %in% use.labels)],data.seurat$patient_id[which(data.seurat$functional.cluster %in% use.labels)],useNA="ifany")  
+  }
+  rownames(subtype_comp_table)[length(rownames(subtype_comp_table))] <- "Others"
+} else {
+   if(normalizeCellCounts){
+    subtype_comp_table <- prop.table(table(data.seurat$functional.cluster[data.seurat$functional.cluster %in% use.labels],
+                                       data.seurat$patient_id[which(data.seurat$functional.cluster %in% use.labels)]), margin = 2)
+   } else {
+    subtype_comp_table <- table(data.seurat$functional.cluster[data.seurat$functional.cluster %in% use.labels],data.seurat$patient_id[which(data.seurat$functional.cluster %in% use.labels)])  
+  }
+}
+
+
+head(t(subtype_comp_table))
+
+res.CA <- CA(t(subtype_comp_table), graph = FALSE)
+options("max.print"=150)
+res.CA$col$coord
+
+a <- plot(res.CA, cex=1, autoLab = "no") + theme(aspect.ratio = 1)
+#a <- plot(res.CA, cex=1, autoLab = "yes", max.overlaps = Inf) + theme(aspect.ratio = 1) 
+
+#Color by response
+coords <- as.data.frame(res.CA$row$coord)
+coords.ct <- as.data.frame(res.CA$col$coord)
+coords.all <- rbind(coords[,1:5], coords.ct[,1:5])
+
+is.R <- unique(data.seurat$patient_id[data.seurat$expansion=='E'])
+is.NR <- unique(data.seurat$patient_id[data.seurat$expansion=='NE'])
+coords[['Responder']] <- "n/a"
+coords$Responder[rownames(coords) %in% is.R] <- "Responder"
+coords$Responder[rownames(coords) %in% is.NR] <- "Non-responder"
+coords[['Patient']] <- rownames(coords)
+
+b <- ggplot(coords, aes(x = `Dim 1`, y = `Dim 2`, color = Responder)) +
+  geom_point(size=4) + theme_bw() + theme(aspect.ratio = 1) +
+  scale_color_manual(values=c("#E9E9E9","#fb0505","#08e579")) +
+  xlim(min(coords.all[,'Dim 1']), max(coords.all[,'Dim 1'])) +
+  ylim(min(coords.all[,'Dim 2']), max(coords.all[,'Dim 2']))
+
+a | b
+ggsave(paste("plots/Bassez2021_CA",useMap,useNotAnnotatedCells,normalizeCellCounts,".pdf",sep="_"),width = 20, height = 10)
+ggsave(paste("plots/Bassez2021_CA",useMap,useNotAnnotatedCells,normalizeCellCounts,".png",sep="_"),width = 20, height = 10)
+
+```
+
+Looking at each cell type at a time, it seems that both CD8 and CD4 T cell frequencies separate to some extent responders, whereas DC subtypes freq. alone does not.
 
 
 
