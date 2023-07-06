@@ -265,7 +265,6 @@ foldchange <- sort(foldchange, decreasing = T)
 
 tb.m <- reshape2::melt(foldchange)
 colnames(tb.m) <- c("Cell_state", "Fold_change")
-pll <- list()
 ggplot(tb.m, aes(x = Cell_state, y = Fold_change, fill = Cell_state)) +
   geom_bar(stat = "identity") +
     scale_fill_manual(values = cols_use) + theme_bw() +
