@@ -126,7 +126,7 @@ Here we will project the query data onto human reference TIL atlas for CD4 and C
 ```{r fig.height=4, fig.width=9}
 options(timeout = max(900, getOption("timeout")))
 
-download.file("https://figshare.com/ndownloader/files/38921366", destfile = "CD8T_human_ref_v1.rds")
+download.file("https://figshare.com/ndownloader/files/41414556", destfile = "CD8T_human_ref_v1.rds")
 ref.cd8 <- load.reference.map("CD8T_human_ref_v1.rds")
 
 download.file("https://figshare.com/ndownloader/files/39012395", destfile = "CD4T_human_ref_v1.rds")
@@ -175,7 +175,7 @@ To classify CD4 and CD8 T cell subtypes, we will project CD4 and CD8 T cells sep
 
 For optimal batch-effect correction, we recommend projecting each patient/batch separately (set `split.by="patient_id"`). For large samples, `Run.ProjecTILs` can take several minutes. Set the number of parallel jobs with *ncores* according to your computational resources.
 
-```{r}
+```{r message=F, warnings=F}
 #Classify CD8 T subtypes
 ncores=8
 data.seurat <-  ProjecTILs.classifier(data.seurat, ref.cd8,
@@ -188,7 +188,7 @@ table(data.seurat$functional.cluster, useNA="ifany")
 ```
 
 We can now run the classifier on the same object with the CD4 T reference, specifying the parameter `overwrite=FALSE`. This adds labels for the CD4 T cells without replacing the CD8 T cell subtypes. Note that only cells that can be unequivocally assigned to one cell type are labeled; the remaining cells (including those that receive a label by more than one reference) are assigned to NA.
-```{r}
+```{r message=F, warnings=F}
 #Classify CD4 T subtypes
 data.seurat <-  ProjecTILs.classifier(data.seurat, ref.cd4,
                                   ncores=ncores, split.by = "patient_id",
@@ -204,11 +204,11 @@ table(data.seurat$functional.cluster, useNA="ifany")
 
 We can verify the expression profile using a panel of marker genes
 ```{r fig.height=9, fig.width=13}
-genes4radar <- c("CD4","CD8A","TCF7","CCR7","IL7R","LMNA","GZMA","GZMK","FGFBP2","XCL1",
+genes4radar <- c("CD4","CD8A","TCF7","CCR7","IL7R","LMNA","GZMA","GZMK","FGFBP2","XCL1","CD200",
                  "CRTAM","TOX","PDCD1","HAVCR2","PRF1","GLNY","GZMB","TRAV1-2","KLRB1","FOXP3")
 
-plot.states.radar(ref=ref.cd8, query=data.seurat, genes4radar = genes4radar)
-plot.states.radar(ref=ref.cd4, query=data.seurat, genes4radar = genes4radar)
+plot.states.radar(ref=ref.cd8, query=data.seurat, genes4radar = genes4radar, min.cells=20)
+plot.states.radar(ref=ref.cd4, query=data.seurat, genes4radar = genes4radar, min.cells=20)
 ```
 
 
@@ -229,7 +229,7 @@ p1 <- ggplot(tb.m, aes(x = Cell_state, y = Perc_cells,
             fill = Cell_state)) + geom_bar(stat = "identity") + 
             theme_bw() + scale_fill_manual(values = cols) +
             theme(axis.text.x = element_blank(), legend.position = "none") +
-            ggtitle("Responders") + ylim(0,50)
+            ggtitle("Responders") + ylim(0,60)
 
 
 tb <-  table(factor(by.exp$NE$functional.cluster, levels = names(cols)))
@@ -241,7 +241,7 @@ p2 <- ggplot(tb.m, aes(x = Cell_state, y = Perc_cells,
             fill = Cell_state)) + geom_bar(stat = "identity") + 
             theme_bw() + scale_fill_manual(values = cols) +
             theme(axis.text.x = element_blank(), legend.position = "right") +
-            ggtitle("Non-Responders") + ylim(0,50)
+            ggtitle("Non-Responders") + ylim(0,60)
 
 p1 | p2
 ```
@@ -251,11 +251,12 @@ The analysis shows that ICB-responding tumors have a higher proportion of CD8 ex
 A more compact way of displaying enrichment/depletion of specific subtypes is to calculate and visualize **fold-changes** of TIL composition in **responders vs non-responders**
 
 ```{r fig.height=3.5, fig.width=5}
-which.types <- table(data.seurat$functional.cluster) > 100  # disregard small populations
+which.types <- table(data.seurat$functional.cluster) > 50  # disregard small populations
+which.types <- names(which.types)[which.types]
 
 states_all <- names(cols)
 
-cols_use <- cols[names(which.types)][which.types]
+cols_use <- cols[which.types]
 
 norm.c <- table(by.exp$NE$functional.cluster)/sum(table(by.exp$NE$functional.cluster))
 norm.q <- table(by.exp$E$functional.cluster)/sum(table(by.exp$E$functional.cluster))
@@ -273,7 +274,7 @@ ggplot(tb.m, aes(x = Cell_state, y = Fold_change, fill = Cell_state)) +
   ggtitle("Responders vs. Non-responders")
 ```
 
-Tumors in ICB-responders have a >10 fold-change increase in **CD4 exhausted CTL** and a ~4-8 fold-change increase in both **Tpex** and **Tex**.
+Tumors in ICB-responders have a >10 fold-change increase in **CD4 exhausted CTL** and **CD8 exhausted T cells**.
 
 # Correspondence analysis of subtype composition
 
