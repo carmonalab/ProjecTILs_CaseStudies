@@ -14,7 +14,7 @@ knit: (function(input_file, encoding) {
   output_file=file.path(dirname(input_file), out_dir, 'novelstate.html'))})
 ---
 
-```{r setup, echo=FALSE}
+```{r setup, echo=FALSE, warning=FALSE}
 library(knitr)
 library(rmdformats)
 library(formatR)
@@ -44,13 +44,14 @@ To install the ProjecTILs package for reference-based analysis of scRNA-seq data
 
 # R Environment
 
-```{r, message=FALSE, warning=F, results=FALSE}
+```{r, message=FALSE, warning=FALSE, results=FALSE}
 library(renv)
 renv::restore()
 
 library(ggplot2)
 library(reshape2)
 library(patchwork)
+library(Seurat)
 library(ProjecTILs)
 ```
 
@@ -90,6 +91,7 @@ ID <- "MC38GP66"
 
 #Gene expression
 data <- CreateSeuratObject(obj[["Gene Expression"]], project="MC38_GP66")
+data <- NormalizeData(data, assay = "RNA")
 
 #Antibody capture
 valid.hashtags <- c(1,2,3,4,5)
