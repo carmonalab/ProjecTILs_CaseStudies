@@ -48,7 +48,8 @@ Note that `scRepertoire` requires R version 4.0 or higher - you will need to hav
 # R Environment
 Check & load R packages
 ```{r message=F, warning=F, results=F}
-Sys.setenv(R_REMOTES_NO_ERRORS_FROM_WARNINGS="true")
+options(timeout=5000)
+options(warn=1)
 
 library(renv)
 renv::restore()
@@ -153,7 +154,7 @@ ref <- load.reference.map()
 
 Project query data (with clonotype information stored as metadata) onto the TIL reference atlas
 ```{r}
-query.projected <- make.projection(querydata, ref=ref, ncores = 2)
+query.projected <- Run.ProjecTILs(querydata, ref=ref, ncores = 2)
 ```
 
 Visualization of projected data.

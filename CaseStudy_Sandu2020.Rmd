@@ -16,7 +16,7 @@ knit: (function(input_file, encoding) {
 
 
 
-```{r setup, echo=FALSE}
+```{r setup, echo=FALSE, warning=FALSE}
 #install.packages("rmdformats")
 #Template markdown setup
 library(knitr)
@@ -42,7 +42,7 @@ opts_knit$set(width=75)
 
 During chronic infection and cancer, prolonged antigen stimulation leads T cells to progressively lose effector function, a process often called **"T cell exhaustion".** The lymphocytic choriomeningitis virus (LCMV) model is one of the best-studied model systems of viral infection in mouse, and has been instrumental in elucidating the biology of T cell exhaustion. In the context of chronic LCMV infection, most studies focus on virus-specific T cells from spleen. The recent study by [Sandu et al.](https://www.sciencedirect.com/science/article/pii/S2211124720310639) applied single-cell sequencing to study CD8 T cell diversity in six different tissues (spleen, blood, bone marrow, lymph node, liver and lung), to determine how the tissue microenvironment affects and shapes T cell phenotypes. They found that T cells adopt tissue-specific transcriptomics profiles, with differential expression of specific genes in different organs, e.g. in genes related to antigen encounter and TCR activation.
 
-In this case study, we applied **ProjecTILs** to re-analyze the single-cell data from Sandu et al. and study tissue-specific T cell heterogeneity in the context of a LCMV reference atlas. Raw data are available from the [European Nucleotide Archive](https://www.ebi.ac.uk/ena/browser/view/PRJEB36998); for convenience, we will start the analysis from the 10x gene-expression matrices available at [Sandu_CellReports2020.tar.gz](https://drive.switch.ch/index.php/s/Hv9wMuHZz4p3cyb/download), kindly provided by the authors.
+In this case study, we applied **ProjecTILs** to re-analyze the single-cell data from Sandu et al. and study tissue-specific T cell heterogeneity in the context of a LCMV reference atlas. Raw data are available from the [European Nucleotide Archive](https://www.ebi.ac.uk/ena/browser/view/PRJEB36998); for convenience, we will start the analysis from the 10x gene-expression matrices available at [Sandu_CellReports2020.tar.gz](https://figshare.com/ndownloader/files/47904319), kindly provided by the authors.
 
 The reference atlas of virus-specific CD8 T cells used in this case study can be explored interactively through the SPICA portal at: [https://spica.unil.ch/refs/viral-CD8-T](https://spica.unil.ch/refs/viral-CD8-T)
 
@@ -64,7 +64,7 @@ library(ProjecTILs)
 
 # Download and process single-cell data
 
-First download the gene epxression data: [Sandu_CellReports2020.tar.gz](https://drive.switch.ch/index.php/s/Hv9wMuHZz4p3cyb/download), and *untar* the file to a convenient location (e.g. in the *input* folder).
+First download the gene expression data: [Sandu_CellReports2020.tar.gz](https://figshare.com/ndownloader/files/47904319), and *untar* the file to a convenient location (e.g. in the *input* folder).
 
 The folder P14_tissues contains single-cell expression matrices for 6 tissues (blood, spleen, bone marrow, lymph node, lung and liver). They will be stored in a single Seurat object for further processing.
 
@@ -85,6 +85,8 @@ for (i in seq_along(folders)) {
 }   
 
 query.merged <- Reduce(merge, query.list)
+#For Seurat 5 objects
+query.merged <- JoinLayers(query.merged)
 
 table(query.merged$Tissue)
 
@@ -125,6 +127,7 @@ Save the *ref_LCMV_Atlas_mouse_v1.rds* object in your working directory, and the
 
 ```{r load.reference}
 ref <- load.reference.map("ref_LCMV_Atlas_mouse_v1.rds")
+ref@images <- list()
 DefaultAssay(ref) <- "integrated"
 
 # reproduce cluster colors
@@ -143,11 +146,10 @@ DimPlot(ref, reduction = "umap", label = TRUE, pt.size = 0.5,
 
 An interactive version of the reference map can also be explored at [https://spica.unil.ch/refs/viral-CD8-T](https://spica.unil.ch/refs/viral-CD8-T)
 
-**Optional:** to speed up computation (and if our machine has large enough memory), we can run projection in parallel for individual samples, by setting the parameter `ncores` to the number of parallel processes. We will also have to tell `future` that we need more memory:
+**Optional:** to speed up computation (and if our machine has large enough memory), we can run projection in parallel for individual samples, by setting the parameter `ncores` to the number of parallel processes.
 
 ```{r message=F, warning=F, results=F}
-#For example, to allow 3GB of RAM, and run on 6 computing cores:
-mem_in_mb <- 3000
+#For example, to run on 6 computing cores:
 ncores <- 6
 ```
 
@@ -166,8 +168,11 @@ We can inspect how the cells from different tissues distribute across the map.
 pll <- list()
 for (i in seq_along(query.projected)) {
    s <- names(query.projected)[i]
-   pll[[i]] <- plot.projection(ref, query.projected[[s]], pointsize = 0.3, linesize = 0.3, cols=functional.cluster.colors)  + 
-      theme_bw() + theme(aspect.ratio = 0.8) + scale_x_reverse() + scale_y_reverse() + coord_flip() + NoLegend() + ggtitle(s)
+   pll[[i]] <- plot.projection(ref, query.projected[[s]],
+                               pointsize = 0.3, linesize = 0.3,
+                               cols=functional.cluster.colors)  + 
+      theme_bw() + theme(aspect.ratio = 0.8) + scale_x_reverse() +
+     scale_y_reverse() + coord_flip() + NoLegend() + ggtitle(s)
 }
 wrap_plots(pll, ncol=3)
 ```
@@ -190,8 +195,10 @@ for (i in seq_along(query.projected)) {
 melt <- reshape2::melt(m)
 colnames(melt) <- c("Tissue", "Cell_state","Percent")
 
-p <- ggplot(melt, aes(x = Tissue, y = Percent, fill = Cell_state)) + geom_bar(stat = "identity", position = "stack") + 
-            scale_fill_manual(values = functional.cluster.colors)  + theme_light() + theme(legend.position = "right")
+p <- ggplot(melt, aes(x = Tissue, y = Percent, fill = Cell_state)) +
+  geom_bar(stat = "identity", position = "stack") + 
+  scale_fill_manual(values = functional.cluster.colors) +
+  theme_light() + theme(legend.position = "right")
 p
 ```
 
