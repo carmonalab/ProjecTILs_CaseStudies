@@ -14,7 +14,7 @@ knit: (function(input_file, encoding) {
   output_file=file.path(dirname(input_file), out_dir, 'Kunzli.html'))})
 ---
 
-```{r setup, echo=FALSE}
+```{r setup, echo=FALSE, warning=F}
 #install.packages("rmdformats")
 #Template markdown setup
 library(knitr)
@@ -42,7 +42,7 @@ CD4+ T cells play a central role in initiating and shaping adaptive immune respo
 
 Differentiation into a specific CD4+ T cell subset depends on several factor, e.g. the tissue, the antigen, and which cytokines are found in the surrounding environment. One such subset, follicular helper T cells (Tfh), are located in secondary lymphoid organs and promote antibody responses via direct cell contact with B cells. However, long-lived Tfh cells have been difficult to detect and characterize. In their study, [Kunzli et al. (2020)](https://pubmed.ncbi.nlm.nih.gov/32144185/) found that Tfh cells are particularly susceptible to NAD-induced cell death (NICD) during sample isolation, and proposed administration of an inhibitor blocking NICD to enrich Tfh cell populations after infection. We will re-analyze their single-cell data for NICD-treated cells at day 35 (versus a control sample at the same time point) using an automated pipeline.
 
-For this purpose, we will apply ProjecTILs to analyse these samples in the context of a reference atlas of CD4+ T cells in viral infection (described in [Andreatta et al. (2022)](https://doi.org/10.7554/eLife.76339)). This atlas can also be explored interactively through the SPICA portal at: [https://spica.unil.ch/refs/viral-CD4-T](https://spica.unil.ch/refs/viral-CD4-T)
+For this purpose, we will apply ProjecTILs to analyse these samples in the context of a reference map of CD4+ T cells in viral infection (described in [Andreatta et al. (2022)](https://doi.org/10.7554/eLife.76339)). This map can also be explored interactively through the SPICA portal at: [https://spica.unil.ch/refs/viral-CD4-T](https://spica.unil.ch/refs/viral-CD4-T)
 
 
 # R Environment
@@ -54,6 +54,7 @@ renv::restore()
 library(ggplot2)
 library(reshape2)
 library(patchwork)
+library(Seurat)
 library(ProjecTILs)
 ```
 
@@ -76,16 +77,15 @@ exp_mat.2 <- read.table(sprintf("%s/GSE134157/GSE134157_UMImatrix_no_NICD_protec
 
 Genes in these matrices are given by Ensembl ID - we will convert them to gene names.
 ```{r}
-dataUrl <- "https://drive.switch.ch/index.php/s/iJKbWGHwOhY1Llu/download"
-fname <- sprintf("%s/mart_conversion_Mm.txt", datadir) 
+library(STACAS)
+#load conversion table
+data(EnsemblGeneTable.Mm)
 
-download.file(dataUrl, fname)
 
-table <- read.csv(fname,sep='\t')
-
-ID2name <- table$Gene.name
-names(ID2name) <- table$Gene.stable.ID
+ID2name <- EnsemblGeneTable.Mm[["Gene name"]]
+names(ID2name) <- EnsemblGeneTable.Mm[["Gene stable ID"]]
 ID2name <- ID2name[!duplicated(names(ID2name))]
+ID2name <- ID2name[!duplicated(ID2name)]
 
 #Convert rownames in gene matrices
 exp_mat.1 <- exp_mat.1[rownames(exp_mat.1) %in% names(ID2name),]
@@ -109,6 +109,9 @@ query.list[["control"]]$Sample <- substring(colnames(query.list[["control"]]),18
 query.list[["control"]]$condition <- "control"
 
 query.merged <- merge(query.list[[1]], query.list[[2]])
+#For Seurat 5
+query.merged <- JoinLayers(query.merged)
+query.merged <- NormalizeData(query.merged)
 
 #Downsample to 1000 cells per sample
 set.seed(1234)
@@ -118,14 +121,14 @@ table(query.merged$Sample)
 
 ```
 
-# Load reference atlas
+# Load reference map
 
-The CD4+ T cell atlas is described in [Andreatta et al. (2022)](https://doi.org/10.7554/eLife.76339), and can be downloaded from Figshare at: [doi.org/10.6084/m9.figshare.16592693.v2](https://doi.org/10.6084/m9.figshare.16592693.v2)
+The CD4+ T cell map is described in [Andreatta et al. (2022)](https://doi.org/10.7554/eLife.76339), and can be downloaded from Figshare at: [doi.org/10.6084/m9.figshare.16592693.v2](https://doi.org/10.6084/m9.figshare.16592693.v2)
 
-You can also use the commands below to download the atlas directly within R, and load it into memory.
+You can also use the commands below to download the map directly within R, and load it into memory.
 
 ```{r fig.height=3.5, fig.width=5}
-#Download the reference atlas
+#Download the reference map
 cd4.atlas.file <- "ref_LCMV_CD4_mouse_release_v1.rds"
 if (!file.exists(cd4.atlas.file)) { 
   dataUrl <- "https://figshare.com/ndownloader/files/31057081"
@@ -137,12 +140,12 @@ DimPlot(ref, label = T, cols = ref@misc$atlas.palette)
 
 # Dataset projection
 
-Next, we apply ProjecTILs to map the new datasets to the reference atlas. If enough cells (>500-1000) are present in individual samples, we recommend projecting them individually into the reference atlas, to fully benefit from ProjecTILs' batch-effect correction.
+Next, we apply ProjecTILs to map the new datasets to the reference map. If enough cells (>500-1000) are present in individual samples, we recommend projecting them individually into the reference map, to fully benefit from ProjecTILs' batch-effect correction.
 
 ```{r}
 query.by.sample <- SplitObject(query.merged, split.by = "Sample")
 
-query.projected <- make.projection(query.by.sample, ref=ref)  
+query.projected <- Run.ProjecTILs(query=query.by.sample, ref=ref, ncores=3)  
 ```
 
 
@@ -155,9 +158,6 @@ for (i in seq_along(query.projected)) {
   sample <- names(query.projected)[i]
   cond <- unique(query.projected[[i]]$condition)
   
-  query.projected[[i]] <- cellstate.predict(ref=ref, query=query.projected[[i]], reduction = "umap", ndim=2)
-  
-  
   plots[[i]] <- plot.projection(ref, query.projected[[i]], linesize=0.5, pointsize=0.5) + 
     ggtitle(paste(sample,cond)) + NoLegend()  + 
     theme(legend.position = "none", panel.grid = element_blank(),
@@ -166,7 +166,7 @@ for (i in seq_along(query.projected)) {
         axis.ticks = element_blank())
   
     plots[[i+3]] <- plot.statepred.composition(ref, query=query.projected[[i]], cols=palette, metric="Percent") + 
-      ggtitle(" ") + ylim(0,60)  + theme_bw() + 
+      ggtitle(" ") + ylim(0,70)  + theme_bw() + 
       theme(panel.grid = element_blank(),
         axis.text.x = element_blank(),
         axis.ticks.x =  element_blank())
@@ -193,7 +193,7 @@ To summarize the effect of the NICD-protector vs. Control, we can pool samples f
 query.bycondition <- list()
 
 query.bycondition[['Control']] <- query.projected$Spleen_0
-query.bycondition[['Protector']] <- ProjecTILs:::merge.Seurat.embeddings(query.projected$Spleen_1, query.projected$Spleen_2)
+query.bycondition[['Protector']] <- merge.Seurat.embeddings(query.projected$Spleen_1, query.projected$Spleen_2)
 ```
 
 Projection plots and composition plots by condition, after pooling.
@@ -206,10 +206,10 @@ for (i in seq_along(query.bycondition)) {
   plots[[i]] <- plot.projection(ref, query.bycondition[[i]], linesize=0.5, pointsize=0.5) + 
     ggtitle(cond) + NoLegend() 
   
-  query.bycondition[[i]] <- cellstate.predict(ref=ref, query=query.bycondition[[i]], reduction = "umap", ndim=2)
+  query.bycondition[[i]] <- cellstate.predict(ref=ref, query=query.bycondition[[i]])
   
   plots[[i+2]] <- plot.statepred.composition(ref, query=query.bycondition[[i]], cols=palette, metric="Percent") + 
-    ggtitle(" ") + ylim(0,60)  + theme_bw() + 
+    ggtitle(" ") + ylim(0,70)  + theme_bw() + 
         theme(panel.grid = element_blank(),
         axis.text.x = element_blank(),
         axis.ticks.x =  element_blank())
@@ -219,7 +219,7 @@ g <- wrap_plots(plots, ncol=2)
 g
 ```
 
-In line with the original publication, projection of CD4+ T cell scRNA-seq data into the reference atlas show that Tfh-memory cells are enriched after NICD-protector treatment, compared to control. Importantly, ProjecTILs enables analyzing complex single-cell data in minutes without specific expertise in T cell biology.
+In line with the original publication, projection of CD4+ T cell scRNA-seq data into the reference map show that Tfh-memory cells are enriched after NICD-protector treatment, compared to control. Importantly, ProjecTILs enables analyzing complex single-cell data in minutes without specific expertise in T cell biology.
 
 # References
 
