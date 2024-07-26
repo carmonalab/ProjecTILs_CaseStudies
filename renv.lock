@@ -356,7 +356,7 @@
       "RemoteRepo": "ProjecTILs",
       "RemoteUsername": "carmonalab",
       "RemoteRef": "HEAD",
-      "RemoteSha": "6aef0823b41c9d6ee9f89efd8cdcd1ec06dafa8d",
+      "RemoteSha": "7e87cd23e2181afb0bb608487d597ab21ac99504",
       "Requirements": [
         "BiocNeighbors",
         "BiocParallel",
@@ -381,7 +381,7 @@
         "umap",
         "uwot"
       ],
-      "Hash": "1d70b41404bf291382f6e9a87bff6cae"
+      "Hash": "a4472c8843fad1b381a37990adbe5b82"
     },
     "R.methodsS3": {
       "Package": "R.methodsS3",

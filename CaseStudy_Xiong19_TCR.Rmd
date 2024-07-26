@@ -163,7 +163,7 @@ ref <- load.reference.map()
 
 Project query data (with clonotype information stored as metadata) onto the TIL reference map
 ```{r}
-querydata <- NormalizeData(querydata)
+#querydata <- NormalizeData(querydata)
 query.projected <- Run.ProjecTILs(querydata, ref=ref, split.by = "SampleLabel", ncores=4)
 ```
 

@@ -16,7 +16,7 @@ knit: (function(input_file, encoding) {
 
 
 
-```{r setup, echo=FALSE}
+```{r setup, echo=FALSE, warning=FALSE}
 #install.packages("rmdformats")
 #Template markdown setup
 library(knitr)
@@ -128,36 +128,29 @@ query.object <- subset(query.object, subset = Time == "Pre")
 ```
 
 
-# ProjecTILs
+# Reference projection
 
-Load reference TIL atlas - if it's not present in the working directory, it will be downloaded from the repository
+Load reference TIL map - if it's not present in the working directory, it will be downloaded from the repository
 ```{r}
 ref <- load.reference.map()
 ```
 
-Run ProjecTILs projection algorithm - note that human genes will be converted to mouse orthologs.
-
-Also, non-T cells are automatically detected and removed before projection.
-```{r}
-query.projected <- make.projection(query.object, ref=ref)
+Run ProjecTILs projection algorithm - note that human genes will be converted to mouse orthologs. Also, non-T cells are automatically detected and removed before projection.
+```{r message=FALSE, warning=FALSE}
+query.projected <- Run.ProjecTILs(query.object, ref=ref, split.by = "Sample", ncores=4)
 ```
 
 Plot global projection of human TIL data over the reference in UMAP space.
 ```{r, cache=F}
-plot.projection(ref, query.projected)
+plot.projection(ref, query.projected, linesize = 0.5, pointsize = 0.5)
 ```
 
-Predict the cell states in the query set
-```{r fig.height=6,fig.width=6}
-query.projected <- cellstate.predict(ref=ref, query=query.projected)
-table(query.projected$functional.cluster)
-```
-
-Interestingly, expression of marker genes of projected human TILs correspond fairly well to those of the murine reference atlas: e.g. Pdcd1, Havcr2 and Entpd1 expression in terminally exhausted CD8 TILs (CD8_Tex), co-expression of Pdcd1, Tox,  and Tcf7 (at a modest level) in the CD8_Tpex state with a higher expression of Ifng; high expression of Tcf7, Ccr7 with low expression of Pdcd1 or cytotoxic molecules in the Naive-like states (that might include central memory cells); Cxcr5 and Tox coexpression in follicular helper T cells; Foxp3, Tox, Havcr2, Entpd1 in regulatory CD4 T cells, etc.
+Interestingly, expression of marker genes of projected human TILs correspond fairly well to those of the murine reference map: e.g. Pdcd1, Havcr2 and Entpd1 expression in terminally exhausted CD8 TILs (CD8_Tex), co-expression of Pdcd1, Tox,  and Tcf7 (at a modest level) in the CD8_Tpex state with a higher expression of Ifng; high expression of Tcf7, Ccr7 with low expression of Pdcd1 or cytotoxic molecules in the Naive-like states (that might include central memory cells); Cxcr5 and Tox coexpression in follicular helper T cells; Foxp3, Tox, Havcr2, Entpd1 in regulatory CD4 T cells, etc.
 ```{r, fig.width=16, fig.height=10, cache=FALSE}
 query.list <- SplitObject(query.projected, split.by = "Response")
-plot.states.radar(ref, query=query.list,min.cells = 50, 
-                  genes4radar = c("Foxp3","Cd4","Cd8a","Tcf7","Ccr7","Gzmb","Pdcd1","Havcr2","Tox","Entpd1","Cxcr5","Ifng","Cxcl13","Xcl1","Itgae"))
+plot.states.radar(ref, query=query.list, min.cells = 50, 
+                  genes4radar = c("Foxp3","Cd4","Cd8a","Tcf7","Ccr7","Gzmb","Pdcd1",
+                                  "Havcr2","Tox","Entpd1","Cxcr5","Ifng","Cxcl13","Xcl1","Itgae"))
 
 ```
 
@@ -179,10 +172,14 @@ query.list <- SplitObject(query.projected, split.by = "Response")
 
 pll <- list()
 
-pll[[1]] <- plot.projection(ref, query.list[["Responder"]]) + ggtitle("Responder")
-pll[[2]] <- plot.statepred.composition(ref, query.list[["Responder"]], metric="Percent") + ggtitle("Responder")  + ylim(0,40)
-pll[[3]] <- plot.projection(ref, query.list[["Non-responder"]]) + ggtitle("Non-responder")
-pll[[4]] <- plot.statepred.composition(ref, query.list[["Non-responder"]], metric="Percent") + ggtitle("Non-responder") + ylim(0,40)
+pll[[1]] <- plot.projection(ref, query.list[["Responder"]],
+                            linesize = 0.5, pointsize = 0.5) + ggtitle("Responder") + NoLegend()
+pll[[2]] <- plot.statepred.composition(ref, query.list[["Responder"]],
+                                       metric="Percent") +ggtitle("Responder") + ylim(0,40)
+pll[[3]] <- plot.projection(ref, query.list[["Non-responder"]],
+                            linesize = 0.5, pointsize = 0.5) + ggtitle("Non-responder") + NoLegend()
+pll[[4]] <- plot.statepred.composition(ref, query.list[["Non-responder"]],
+                                       metric="Percent") + ggtitle("Non-responder") + ylim(0,40)
 
 grid.arrange(grobs=pll, ncol=2, nrow=2, widths=c(1.5,1))
 ```
@@ -214,9 +211,8 @@ tb.m <- reshape2::melt(foldchange)
 colnames(tb.m) <- c("Cell_state","Fold_change")
 pll <- list()
 ggplot(tb.m, aes(x=Cell_state, y=Fold_change, fill=Cell_state)) + geom_bar(stat="identity") +
-  scale_fill_manual(values=cols_use) + geom_hline(yintercept = 1) + scale_y_continuous(trans='log2') +
-  theme(axis.text.x=element_blank(), legend.position="left") + ggtitle("Responder vs. Non-responder") +
-  theme_bw()
+  scale_fill_manual(values=cols_use) + geom_hline(yintercept = 1) + scale_y_continuous(trans='log2')  + ggtitle("Responder vs. Non-responder") + theme_bw() +
+  theme(axis.text.x=element_blank(), legend.position="left")
 
 ```
 
@@ -224,7 +220,7 @@ Indeed, CD4 and CD8 Naive-like states are the most enriched in responders compar
 
 # Conclusions
 
-Taking advantage of the ortholog mapping functionality of `ProjecTILs`, we have illustrated how to effortlessly analyze human scRNA-seq data in the context of a reference murine TIL atlas. Gene expression profiles confirmed that T cells are accurately projected in major CD4+ and CD8+ categories, as well as in more specific subtypes (CD8_Tex, CD8_Tpex, Naive-like, Follicular helper, Th1, and T regulatory CD4+ cells). 
+Taking advantage of the ortholog mapping functionality of `ProjecTILs`, we have illustrated how to effortlessly analyze human scRNA-seq data in the context of a reference murine TIL map. Gene expression profiles confirmed that T cells are accurately projected in major CD4+ and CD8+ categories, as well as in more specific subtypes (CD8_Tex, CD8_Tpex, Naive-like, Follicular helper, Th1, and T regulatory CD4+ cells). 
 
 Comparison of transcriptional profiles and cell states of TILs at baseline from responding vs non-responding melanoma patients confirmed the original observation by Sade-Feldman et al. that the **frequency of TCF7+ CD8 TILs correlates with checkpoint therapy responsiveness**.
 
@@ -236,7 +232,8 @@ This might seem at odds with other studies showing that the presence of PD-1+ 'e
 
 Therefore, the presence of a pool of PD-1+ CD8 T cells in the tumor might be required, but not sufficient, for therapeutic success. Other factors, including total amount of CD8 TIL infiltration, spatial distribution, etc. might be correlated with the presence of naive-like CD8 TILs and with improved response. For example, we also observed that responding tumors had higher frequencies of Th1-like and naive-like CD4 T cells and lower frequency of regulatory CD4 T cells, which might also contribute to the improved anti-tumor response following immunotherapy.
 
-In summary, ProjecTILs analysis of human T cell data in the context of a stable atlas provides a stable framework to compare samples across groups and conditions, and gives a more complete picture of the T cell states that are associated with immunotherapy response. Ultimately, a reference human atlas of T cells states would be desirable. While we have shown that robust ortholog signals can be extracted by projection of human data onto a reference mouse atlas, human-mouse mapping will also be beneficial towards the construction of stable human atlases, where inter-individual variability represents a major hurdle.
+In summary, ProjecTILs analysis of human T cell data in the context of a stable atlas provides a stable framework to compare samples across groups and conditions, and gives a more complete picture of the T cell states that are associated with immunotherapy response. While we have shown that robust ortholog signals can be extracted by projection of human data onto a reference mouse atlas, human-mouse mapping will also be beneficial towards the construction of stable human atlases, where inter-individual variability represents a major hurdle. Human T cell reference maps are now also available for [CD8 T cells](https://doi.org/10.6084/m9.figshare.21931875) and [CD4 T cells](https://doi.org/10.6084/m9.figshare.21981536) - you may experiment with analyzing these data also in the context of these maps (see also [this case study](https://carmonalab.github.io/ProjecTILs_CaseStudies/Bassez_BC.html)).
+
 
 
 # Further reading
